@@ -1,5 +1,5 @@
-import { CaseLoader } from "@/components/CaseLoader";
+import { TapeLoader } from "@/components/tape/TapeLoader";
 
 export default function Loading() {
-  return <CaseLoader label="Verificando credenciales" />;
+  return <TapeLoader label="VERIFICANDO CREDENCIALES" />;
 }

@@ -1,119 +1,290 @@
 rules_version = '2';
 
-// Reglas para el proyecto Firebase "operationjl".
+// Reglas del Circo del Terror (proyecto Firebase "operationjl").
 // Pegar manualmente en: Firebase Console → Firestore Database → Reglas.
 //
-// Requiere que en Authentication → Sign-in method esté habilitado el
-// proveedor "Google" (tanto invitados como admin inician sesión con Google;
-// el admin es quien usa la cuenta ADMIN_EMAIL).
+// Requiere el proveedor "Google" habilitado en Authentication.
+//
+// El principio que ordena todo esto: **un voto secreto no es secreto si el
+// votante puede leer los votos**. Por eso las votaciones sensibles (disfraces,
+// mentiras) solo las lee el anfitrión, que publica el resultado al cerrarlas.
+// Las que no necesitan secreto (menú, película) son de lectura pública y se
+// cuentan en el cliente.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Ojo: este correo también está en src/lib/event-config.ts. Las reglas no
+    // pueden importar del código, así que si cambia hay que tocar ambos lados.
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email == 'joseluismunozzuta@gmail.com';
     }
 
-    // Instante exacto del evento: 2026-08-05 20:00 America/Lima (UTC-5)
-    // == 2026-08-06T01:00:00Z. Si cambias EVENT_DATE_ISO en
-    // src/lib/event-config.ts, actualiza también este valor.
-    function eventHasStarted() {
-      return request.time > timestamp.date(2026, 8, 6) + duration.value(1, 'h');
+    function signedIn() {
+      return request.auth != null;
     }
 
-    match /questions/{questionId} {
-      // El banco de preguntas no es información sensible: lectura pública
-      // (se necesita para que el cliente sepa cuáles están disponibles).
+    function miIdentidad() {
+      return get(/databases/$(database)/documents/identidades/$(request.auth.uid)).data;
+    }
+
+    function tengoIdentidad() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/identidades/$(request.auth.uid));
+    }
+
+    function estado() {
+      return get(/databases/$(database)/documents/party/live).data;
+    }
+
+    function actividadAbierta(nombre) {
+      return estado().actividadAbierta == nombre;
+    }
+
+    // ── Estado de la noche ────────────────────────────────────────────────
+    // Qué bloque va y qué dinámica está abierta. Todos lo leen; solo el
+    // anfitrión lo mueve.
+    match /party/live {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Quién es quién ────────────────────────────────────────────────────
+    // Lectura pública: el marcador y las parejas muestran nombres reales, no
+    // correos. Cada quien escribe solo SU documento, y una sola vez.
+    match /identidades/{uid} {
       allow read: if true;
 
-      // Solo se permite tocar taken/assignedToName — vía la transacción de
-      // asignación o la liberación en src/lib/rsvp.ts (esta última ocurre
-      // cuando un testigo cambia su respuesta de "sí" a "no").
-      allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['taken', 'assignedToName'])
-        && request.resource.data.taken is bool
-        && (request.resource.data.assignedToName == null || request.resource.data.assignedToName is string);
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && request.resource.data.persona is string
+        && request.resource.data.parejaId is string
+        && request.resource.data.keys().hasOnly(
+             ['persona', 'parejaId', 'nombre', 'photoURL', 'creadoEn']
+           );
 
-      // El admin puede editar el texto (corregir una pregunta ya asignada
-      // sin tener que borrarla y perder el vínculo con el testigo).
-      allow update: if isAdmin();
-
-      // Solo el admin siembra/borra el banco (botón en /admin).
-      allow create, delete: if isAdmin();
+      // Nadie cambia de identidad después. Si alguien se equivoca, el
+      // anfitrión borra y vuelve a empezar.
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
-    match /rsvps/{rsvpId} {
-      // El id del documento es el uid de la cuenta de Google del testigo:
-      // reenviar el formulario — desde cualquier dispositivo, con la misma
-      // cuenta — actualiza su propia declaración en vez de crear un
-      // duplicado.
-      function isOwnDoc() {
-        return request.auth != null && rsvpId == request.auth.uid;
-      }
+    // El candado que impide que dos cuentas tomen el mismo nombre. El id del
+    // documento ES el nombre, así la transacción de reclamo puede comprobarlo
+    // sin consultar la colección (algo que una transacción no permite).
+    match /identidadesTomadas/{persona} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid']);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
 
-      function isValidRsvp() {
-        return request.resource.data.uid == request.auth.uid
-          && request.resource.data.name is string
-          && request.resource.data.name.size() > 0
-          && request.resource.data.name.size() < 80
-          && request.resource.data.confirmation in ['si', 'no']
-          && request.resource.data.keys().hasOnly(
-               ['name', 'confirmation', 'uid', 'photoURL', 'questionId', 'questionText',
-                'createdAt', 'turn', 'checkedInAt', 'declaredAt']
-             );
-      }
+    // ── Menú colaborativo ─────────────────────────────────────────────────
+    // Sin secreto: es un menú. Los votos son públicos y se cuentan en el
+    // cliente, lo que ahorra un paso manual al anfitrión.
+    match /platos/{platoId} {
+      allow read: if true;
 
-      allow create, update: if isOwnDoc() && isValidRsvp();
+      allow create: if tengoIdentidad()
+        && request.resource.data.propuestoPor == miIdentidad().persona
+        && request.resource.data.titulo is string
+        && request.resource.data.titulo.size() > 0
+        && request.resource.data.titulo.size() < 160
+        && request.resource.data.tipo in ['cocinar', 'traer']
+        && request.resource.data.keys().hasOnly(
+             ['titulo', 'tipo', 'propuestoPor', 'asignadoA', 'creadoEn']
+           );
 
-      // JL marca desde /proyeccion quién ya declaró. Solo puede tocar ese
-      // campo: no puede alterar el nombre, la pregunta ni el turno de nadie.
+      // Quien lo propuso puede corregir el texto; solo el anfitrión asigna.
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['declaredAt']);
+        || (tengoIdentidad()
+            && resource.data.propuestoPor == miIdentidad().persona
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['titulo', 'tipo']));
 
-      // Lectura: el admin siempre puede verla (panel); un testigo puede leer
-      // su propia declaración (para ver/actualizar su estado y su pregunta);
-      // cualquiera puede ver la lista completa solo a partir del instante
-      // real del evento (revelación grupal). No es un simple check de UI:
-      // Firestore lo rechaza server-side hasta que llegue esa hora de verdad.
-      allow read: if isAdmin() || isOwnDoc() || eventHasStarted();
+      allow delete: if isAdmin()
+        || (tengoIdentidad() && resource.data.propuestoPor == miIdentidad().persona);
+    }
+
+    match /platoVotos/{votoId} {
+      allow read: if true;
+
+      // El id fija un voto por plato y por persona, y que sea el tuyo.
+      allow create: if tengoIdentidad()
+        && votoId == request.resource.data.platoId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['platoId', 'persona', 'uid'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.persona == miIdentidad().persona;
+
+      allow update: if false;
+      // Retirar el voto propio sí se permite: es un menú, no una urna.
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // ── Concurso de disfraces ─────────────────────────────────────────────
+    // Una foto por pareja. Cualquiera de los dos la sube o la reemplaza.
+    match /disfraces/{parejaId} {
+      allow read: if true;
+
+      allow create, update: if tengoIdentidad()
+        && miIdentidad().parejaId == parejaId
+        && request.resource.data.foto is string
+        && request.resource.data.foto.size() < 950000
+        && request.resource.data.keys().hasOnly(['foto', 'subidaPor', 'subidaEn']);
 
       allow delete: if isAdmin();
     }
 
-    // ---------------------------------------------------------------------
-    // Interrogatorio en vivo (trivia tipo Kahoot)
-    // ---------------------------------------------------------------------
+    // Voto SECRETO: solo el anfitrión los lee. Si el votante pudiera leerlos,
+    // el concurso dejaría de tener gracia a los diez segundos.
+    match /disfrazVotos/{votoId} {
+      allow read: if isAdmin();
+
+      allow create: if tengoIdentidad()
+        && votoId == request.auth.uid + '_' + request.resource.data.categoria
+        && request.resource.data.keys().hasOnly(['categoria', 'parejaId'])
+        // Nadie vota a su propia pareja.
+        && request.resource.data.parejaId != miIdentidad().parejaId;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Dos verdades y una mentira ────────────────────────────────────────
+    // Las frases se escriben antes del evento y nadie más las ve hasta que la
+    // dinámica se abre: ahí pasan a ser públicas porque van en la pantalla.
+    match /fichas/{persona} {
+      allow read: if isAdmin()
+        || actividadAbierta('mentiras')
+        || (tengoIdentidad() && miIdentidad().persona == persona);
+
+      // Solo tú escribes la tuya, y solo mientras la ronda no haya empezado.
+      allow create, update: if tengoIdentidad()
+        && miIdentidad().persona == persona
+        && !actividadAbierta('mentiras')
+        && request.resource.data.frases.size() == 3
+        && request.resource.data.keys().hasOnly(['frases', 'actualizadoEn']);
+
+      allow delete: if isAdmin();
+    }
+
+    // Marcador público y vacío: dice QUIÉN ya dejó sus frases, sin revelar
+    // ninguna. Sin esto el contador de "faltan cuatro" sería imposible, porque
+    // antes de abrir la ronda cada quien solo puede leer su propia ficha.
+    match /fichasListas/{persona} {
+      allow read: if true;
+      allow create, update: if tengoIdentidad()
+        && miIdentidad().persona == persona
+        && request.resource.data.keys().hasOnly([]);
+      allow delete: if isAdmin();
+    }
+
+    // Cuál de las tres es la mentira. Aislada igual que triviaKeys: la escribe
+    // su dueño, la lee solo el anfitrión al momento de revelar.
+    match /fichaClaves/{persona} {
+      allow read: if isAdmin();
+
+      allow create, update: if tengoIdentidad()
+        && miIdentidad().persona == persona
+        && !actividadAbierta('mentiras')
+        && request.resource.data.indiceMentira is int
+        && request.resource.data.indiceMentira >= 0
+        && request.resource.data.indiceMentira < 3
+        && request.resource.data.keys().hasOnly(['indiceMentira']);
+
+      allow delete: if isAdmin();
+    }
+
+    match /mentiraVotos/{votoId} {
+      allow read: if isAdmin();
+
+      allow create: if tengoIdentidad()
+        && votoId == request.resource.data.ronda + '_' + request.auth.uid
+        && actividadAbierta('mentiras')
+        && request.resource.data.indice is int
+        && request.resource.data.indice >= 0
+        && request.resource.data.indice < 3
+        && request.resource.data.keys().hasOnly(['ronda', 'indice'])
+        // Nadie vota su propia ficha.
+        && request.resource.data.ronda != miIdentidad().persona;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Película de cierre ────────────────────────────────────────────────
+    // Sin secreto: es para decidir qué se pone a las 2 am.
+    match /peliculas/{peliculaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /peliculaVotos/{uid} {
+      allow read: if true;
+      allow create, update: if signedIn() && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['peliculaId']);
+      allow delete: if signedIn() && uid == request.auth.uid;
+    }
+
+    // ── Marcador de Almas ─────────────────────────────────────────────────
+    // Lectura pública (se ve en la TV y en cada celular); lo escribe solo el
+    // anfitrión, porque los puntos los calcula su panel.
+    match /almas/{persona} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Misiones secretas ─────────────────────────────────────────────────
+    match /bancoMisiones/{misionId} {
+      allow read: if true;
+      // Solo se toca 'tomada' al asignar, desde la transacción del cliente.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tomada'])
+        && request.resource.data.tomada is bool;
+      allow create, delete: if isAdmin();
+    }
+
+    match /misiones/{persona} {
+      // La tuya y la de nadie más, hasta que el anfitrión las revela.
+      allow read: if isAdmin()
+        || actividadAbierta('misiones')
+        || (tengoIdentidad() && miIdentidad().persona == persona);
+
+      allow create: if tengoIdentidad() && miIdentidad().persona == persona
+        && request.resource.data.keys().hasOnly(['misionId', 'texto', 'abiertaEn']);
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Interrogatorio en vivo (trivia tipo Kahoot) — heredado y sin cambios.
+    // Es la parte más probada del sistema; no tocar sin motivo.
+    // ─────────────────────────────────────────────────────────────────────
 
     function gameState() {
       return get(/databases/$(database)/documents/triviaGame/live).data;
     }
 
-    // Estado del juego: todos necesitan leerlo (pregunta actual, temporizador,
-    // resultado). Solo el admin lo escribe.
     match /triviaGame/live {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Enunciado y alternativas. Lectura pública PERO limitada a la pregunta
-    // que está activa: así nadie puede adelantarse y leer el resto del banco.
+    // Lectura pública PERO limitada a la pregunta activa: así nadie se
+    // adelanta a leer el resto del banco.
     match /triviaQuestions/{questionId} {
       allow read: if isAdmin() || gameState().currentQuestionId == questionId;
       allow write: if isAdmin();
     }
 
-    // La respuesta correcta vive aquí, aislada: NUNCA es legible por un
-    // jugador. El admin la lee solo al momento de calificar.
+    // La respuesta correcta vive aquí, aislada: NUNCA legible por un jugador.
     match /triviaKeys/{questionId} {
       allow read, write: if isAdmin();
     }
 
-    // Una respuesta por pregunta y por persona, inmutable:
-    // - el id del documento debe ser {preguntaActual}_{uid}
-    // - solo se permite create (nunca update), así no se puede cambiar la
-    //   respuesta después de ver el resultado
-    // - solo mientras la pregunta esté abierta
+    // Una respuesta por pregunta y por persona, inmutable.
     match /triviaResponses/{responseId} {
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
 
@@ -133,62 +304,9 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Marcador: lectura pública (el podio se ve en la TV y en cada celular),
-    // escritura solo del admin — los puntos los calcula su panel.
     match /triviaScores/{uid} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-
-    // Contador del turno de declaración, asignado al escanear el QR de la
-    // puerta (counters/checkin). Cualquier testigo autenticado puede tomar el
-    // siguiente número, pero solo puede incrementarlo de uno en uno — no
-    // reescribirlo a un valor arbitrario ni retroceder.
-    // Interruptor del interrogatorio de testigos: lectura pública (la TV lo
-    // necesita sin sesión), escritura solo del admin.
-    match /counters/interrogation {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /counters/checkin {
-      allow read: if request.auth != null;
-
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['lastTurn'])
-        && request.resource.data.lastTurn == 1;
-
-      allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['lastTurn'])
-        && request.resource.data.lastTurn == resource.data.lastTurn + 1;
-
-      allow delete: if isAdmin();
-    }
-
-    match /wishlist/{itemId} {
-      // Lista de regalos: no es información sensible, lectura pública para
-      // que la sección "Evidencia requerida" la muestre a los invitados.
-      allow read: if true;
-
-      // Cualquier testigo autenticado puede marcar un elemento "bloqueable"
-      // como comprado (para que otros no lo compren también) — pero solo
-      // puede tocar esos tres campos, nunca el título/url/imagen/descripción
-      // ni el flag "lockable". Desmarcarlo (si al final no lo compró) solo
-      // puede hacerlo la misma cuenta que lo marcó (comparando su uid contra
-      // purchasedByUid) o el admin — así nadie más puede liberar por error
-      // la compra real de otra persona.
-      allow update: if request.auth != null
-        && resource.data.lockable == true
-        && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['purchased', 'purchasedByName', 'purchasedByUid'])
-        && request.resource.data.purchased is bool
-        && (
-             request.resource.data.purchased == true
-             || isAdmin()
-             || request.auth.uid == resource.data.purchasedByUid
-           );
-
-      allow create, update, delete: if isAdmin();
     }
   }
 }

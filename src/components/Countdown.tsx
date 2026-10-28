@@ -44,24 +44,32 @@ export function Countdown() {
   }, []);
 
   if (remaining?.isPast) {
-    return <p className="stamp text-red-bright text-sm">El caso ya está en curso</p>;
+    return (
+      <p className="text-center text-[11px] tracking-[0.25em] text-rec">
+        LA FUNCIÓN YA EMPEZÓ
+      </p>
+    );
   }
 
   const units = [
-    { label: "Días", value: remaining?.days },
-    { label: "Horas", value: remaining?.hours },
-    { label: "Min", value: remaining?.minutes },
-    { label: "Seg", value: remaining?.seconds },
+    { label: "DÍAS", value: remaining?.days },
+    { label: "HRS", value: remaining?.hours },
+    { label: "MIN", value: remaining?.minutes },
+    { label: "SEG", value: remaining?.seconds },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-3 text-center" role="timer" aria-live="polite">
+    <div
+      className="flex items-end justify-between gap-2 border-t border-tape-line pt-3"
+      role="timer"
+      aria-live="off"
+    >
       {units.map((u) => (
-        <div key={u.label} className="case-card px-3 py-4">
-          <div className="font-mono text-2xl tabular-nums text-amber-bright">
+        <div key={u.label} className="flex-1 text-center">
+          <div className="font-cartel text-[clamp(1.3rem,6vw,1.9rem)] leading-none tabular-nums text-bulb">
             {u.value === undefined ? "--" : String(u.value).padStart(2, "0")}
           </div>
-          <div className="mt-1 text-xs uppercase tracking-widest text-muted">{u.label}</div>
+          <div className="mt-1 text-[9px] tracking-[0.2em] text-muted">{u.label}</div>
         </div>
       ))}
     </div>
