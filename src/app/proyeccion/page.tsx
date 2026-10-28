@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TriviaBoard } from "@/components/trivia/TriviaBoard";
-import { MentirasBoard, type FaseMentiras } from "@/components/proyeccion/MentirasBoard";
+import { MentirasBoard } from "@/components/proyeccion/MentirasBoard";
 import {
   IDLE_GAME,
   subscribeGame,
@@ -11,38 +11,36 @@ import {
   type TriviaScore,
 } from "@/lib/trivia";
 import { EVENT_NAME } from "@/lib/event-config";
-import { FICHAS_MENTIRA } from "@/lib/datos-provisionales";
-
-type Modo = "trivia" | "mentiras";
+import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
+import { suscribirFichas, type Ficha } from "@/lib/mentiras";
+import type { PersonaId } from "@/lib/identidad";
 
 /**
  * La pantalla de la TV. Es la única vista del sitio diseñada para horizontal y
  * grande; todo lo demás es de celular.
  *
- * De momento el modo se fuerza con ?modo=mentiras para poder verlo. Cuando
- * entre Firestore lo decidirá `party/live.openActivity`.
+ * Qué se muestra lo decide `party/live`: si hay una dinámica abierta manda esa,
+ * y si no, el tablero de la trivia.
  */
 export default function ProyeccionPage() {
   const [game, setGame] = useState<GameState>(IDLE_GAME);
   const [scores, setScores] = useState<TriviaScore[]>([]);
-  const [modo, setModo] = useState<Modo>("trivia");
-  const [fase, setFase] = useState<FaseMentiras>("frases");
+  const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
+  const [fichas, setFichas] = useState<Ficha[]>([]);
 
   useEffect(() => subscribeGame(setGame), []);
   useEffect(() => subscribeScores(setScores), []);
+  useEffect(() => suscribirNoche(setNoche, () => {}), []);
+  useEffect(() => suscribirFichas(setFichas, () => {}), []);
 
-  // Se lee de location en vez de useSearchParams: esa API obliga a envolver la
-  // página en un Suspense cuando se prerenderiza estática.
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("modo") === "mentiras") setModo("mentiras");
-      if (params.get("fase") === "resultado") setFase("resultado");
-    }, 0);
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  const ficha = FICHAS_MENTIRA[0];
+  const enMentiras = noche.actividadAbierta === "mentiras" && noche.rondaMentiras;
+  const ficha = enMentiras
+    ? fichas.find((f) => f.autor === noche.rondaMentiras)
+    : undefined;
+  const resultado =
+    noche.resultadoMentiras?.ronda === noche.rondaMentiras
+      ? noche.resultadoMentiras
+      : null;
 
   return (
     <main className="scanlines relative flex h-screen flex-col overflow-hidden px-8 py-6">
@@ -56,22 +54,29 @@ export default function ProyeccionPage() {
         </div>
       </header>
 
-      {modo === "mentiras" ? (
-        <MentirasBoard
-          autor={ficha.autor}
-          frases={ficha.frases}
-          fase={fase}
-          indiceMentira={1}
-          votos={[1, 3, 2]}
-        />
+      {enMentiras ? (
+        ficha ? (
+          <MentirasBoard
+            autor={ficha.autor}
+            frases={ficha.frases}
+            fase={resultado ? "resultado" : "frases"}
+            indiceMentira={resultado?.indiceMentira}
+            votos={resultado?.votos}
+          />
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-2xl text-muted">
+              Esperando las frases de{" "}
+              <span className="text-bone">{noche.rondaMentiras as PersonaId}</span>…
+            </p>
+          </div>
+        )
       ) : (
         <TriviaBoard game={game} scores={scores} />
       )}
 
       <footer className="shrink-0 pt-4 text-center text-xs tracking-[0.2em] text-muted">
-        {modo === "mentiras"
-          ? "VOTA DESDE TU CELULAR EN /"
-          : "RESPONDE DESDE TU CELULAR EN /TRIVIA"}
+        {enMentiras ? "ELIGE EL NÚMERO DESDE TU CELULAR" : "RESPONDE DESDE TU CELULAR EN /TRIVIA"}
       </footer>
     </main>
   );

@@ -4,6 +4,20 @@ import { db } from "./firebase";
 /** Las dinámicas que el anfitrión puede abrir desde la cabina. */
 export type Actividad = "mentiras" | "misiones" | "disfraces" | "supervivencia" | null;
 
+/**
+ * Resultado publicado de una ronda de mentiras.
+ *
+ * Vive en party/live —de lectura pública— porque la clave y los votos solo los
+ * puede leer el anfitrión. Es el mismo truco que usa la trivia con lastResult:
+ * el que sabe la respuesta la publica, y la pantalla la muestra sin tener que
+ * poder leer la fuente.
+ */
+export type ResultadoMentiras = {
+  ronda: string;
+  indiceMentira: number;
+  votos: [number, number, number];
+};
+
 export type EstadoNoche = {
   /** Qué dinámica está abierta. Las reglas de Firestore la consultan. */
   actividadAbierta: Actividad;
@@ -11,12 +25,14 @@ export type EstadoNoche = {
   bloqueForzado: string | null;
   /** De quién son las frases que están en la pantalla ahora. */
   rondaMentiras: string | null;
+  resultadoMentiras: ResultadoMentiras | null;
 };
 
 export const NOCHE_INICIAL: EstadoNoche = {
   actividadAbierta: null,
   bloqueForzado: null,
   rondaMentiras: null,
+  resultadoMentiras: null,
 };
 
 const REF = () => doc(db, "party", "live");
@@ -33,6 +49,7 @@ export function suscribirNoche(
         actividadAbierta: (data?.actividadAbierta as Actividad) ?? null,
         bloqueForzado: (data?.bloqueForzado as string | null) ?? null,
         rondaMentiras: (data?.rondaMentiras as string | null) ?? null,
+        resultadoMentiras: (data?.resultadoMentiras as ResultadoMentiras | null) ?? null,
       });
     },
     (err) => onError?.(err)

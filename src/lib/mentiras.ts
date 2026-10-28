@@ -1,4 +1,14 @@
-import { collection, doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { PersonaId } from "./identidad";
 
@@ -74,4 +84,48 @@ export async function votarMentira(ronda: PersonaId, indice: number) {
   const user = auth.currentUser;
   if (!user) throw new Error("sin-sesion");
   await setDoc(doc(db, "mentiraVotos", `${ronda}_${user.uid}`), { ronda, indice });
+}
+
+/**
+ * Cierra una ronda: lee la clave y los votos —cosas que solo el anfitrión
+ * puede leer— y publica el resultado en party/live, que sí es público.
+ *
+ * Devuelve además los puntos que esa ronda reparte, para que la cabina los
+ * acumule y los vuelque al Marcador de Almas de una sola vez.
+ */
+export async function cerrarRondaMentiras(ronda: PersonaId): Promise<{
+  indiceMentira: number;
+  votos: [number, number, number];
+  acertaron: PersonaId[];
+}> {
+  const clave = await getDoc(doc(db, "fichaClaves", ronda));
+  if (!clave.exists()) throw new Error("sin-clave");
+  const indiceMentira = clave.data().indiceMentira as number;
+
+  const votosSnap = await getDocs(
+    query(collection(db, "mentiraVotos"), where("ronda", "==", ronda))
+  );
+  const identidades = await getDocs(collection(db, "identidades"));
+  const personaPorUid = new Map(
+    identidades.docs.map((d) => [d.id, d.data().persona as PersonaId])
+  );
+
+  const votos: [number, number, number] = [0, 0, 0];
+  const acertaron: PersonaId[] = [];
+  for (const d of votosSnap.docs) {
+    const indice = d.data().indice as number;
+    if (indice >= 0 && indice < 3) votos[indice] += 1;
+    // El id es `${ronda}_${uid}`; la ronda puede llevar guion bajo, el uid no.
+    const uid = d.id.slice(ronda.length + 1);
+    const quien = personaPorUid.get(uid);
+    if (quien && indice === indiceMentira) acertaron.push(quien);
+  }
+
+  await setDoc(
+    doc(db, "party", "live"),
+    { resultadoMentiras: { ronda, indiceMentira, votos } },
+    { merge: true }
+  );
+
+  return { indiceMentira, votos, acertaron };
 }

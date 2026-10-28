@@ -1,6 +1,16 @@
-import { collection, doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { auth, db } from "./firebase";
-import type { ParejaId, PersonaId } from "./identidad";
+import { PAREJAS, type ParejaId, type PersonaId } from "./identidad";
+
+/** Lo que vale ganar una categoría, para los dos de la pareja. */
+const PUNTOS_CATEGORIA = 400;
 
 export type Disfraz = {
   parejaId: ParejaId;
@@ -91,4 +101,55 @@ export async function votarDisfraz(categoria: CategoriaId, parejaId: ParejaId) {
     categoria,
     parejaId,
   });
+}
+
+/**
+ * Cierra la votación: cuenta los votos —que solo el anfitrión puede leer— y
+ * devuelve quién ganó cada categoría y los puntos que le tocan a cada persona.
+ *
+ * Los puntos van a los DOS integrantes de la pareja ganadora: el disfraz es de
+ * los dos, así que el premio también.
+ */
+export async function cerrarVotacionDisfraces(): Promise<{
+  ganadoras: { categoria: string; parejaId: ParejaId }[];
+  puntos: Partial<Record<PersonaId, number>>;
+}> {
+  const votos = await getDocs(collection(db, "disfrazVotos"));
+
+  const conteo = new Map<string, Map<string, number>>();
+  for (const d of votos.docs) {
+    const categoria = d.data().categoria as string;
+    const parejaId = d.data().parejaId as string;
+    if (!conteo.has(categoria)) conteo.set(categoria, new Map());
+    const porPareja = conteo.get(categoria)!;
+    porPareja.set(parejaId, (porPareja.get(parejaId) ?? 0) + 1);
+  }
+
+  const ganadoras: { categoria: string; parejaId: ParejaId }[] = [];
+  const puntos: Partial<Record<PersonaId, number>> = {};
+
+  for (const categoria of CATEGORIAS) {
+    const porPareja = conteo.get(categoria.id);
+    if (!porPareja || porPareja.size === 0) continue;
+
+    // Empate: gana la primera en orden de PAREJAS. Con tres parejas y votos
+    // de cuatro personas pasa poco, y desempatar a mano a la 1 am es peor.
+    let mejor: ParejaId | null = null;
+    let mejorVotos = -1;
+    for (const pareja of PAREJAS) {
+      const suyos = porPareja.get(pareja.id) ?? 0;
+      if (suyos > mejorVotos) {
+        mejorVotos = suyos;
+        mejor = pareja.id;
+      }
+    }
+    if (!mejor || mejorVotos <= 0) continue;
+
+    ganadoras.push({ categoria: categoria.nombre, parejaId: mejor });
+    for (const persona of PAREJAS.find((p) => p.id === mejor)!.integrantes) {
+      puntos[persona] = (puntos[persona] ?? 0) + PUNTOS_CATEGORIA;
+    }
+  }
+
+  return { ganadoras, puntos };
 }

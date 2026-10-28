@@ -49,6 +49,15 @@ export default function AdminPage() {
 
         <nav className="mt-7 flex flex-col gap-3">
           <Link
+            href="/admin/noche"
+            className="border border-tape-line px-5 py-4 transition-colors hover:border-bulb hover:text-bulb"
+          >
+            <span className="block text-sm">Cabina de la noche</span>
+            <span className="mt-1 block text-[11px] text-muted">
+              Abrir dinámicas, cerrar votaciones y repartir puntos
+            </span>
+          </Link>
+          <Link
             href="/admin/trivia"
             className="border border-tape-line px-5 py-4 transition-colors hover:border-bulb hover:text-bulb"
           >
