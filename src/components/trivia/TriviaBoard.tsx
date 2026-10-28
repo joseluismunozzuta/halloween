@@ -37,10 +37,10 @@ function QuestionCarousel({ urls }: { urls: string[] }) {
   return (
     <div
       ref={trackRef}
-      className="carousel mx-auto h-108 w-full max-w-2xl rounded-2xl shadow-xl shadow-gray-800"
+      className="carousel tape-frame mx-auto h-108 w-full max-w-2xl"
     >
       {urls.map((src, i) => (
-        <div key={i} className="carousel-item w-full justify-center bg-paper">
+        <div key={i} className="carousel-item w-full justify-center bg-tape-deep">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt="" className="h-108 w-full object-contain" />
         </div>
@@ -49,8 +49,21 @@ function QuestionCarousel({ urls }: { urls: string[] }) {
   );
 }
 
-// Tablero del interrogatorio para la TV: la pregunta y las alternativas se
-// leen acá, mientras los celulares solo muestran los botones de color.
+/** Etiqueta de estado, con la voz del visor de la cámara. */
+function Rotulo({ children, tone = "bulb" }: { children: React.ReactNode; tone?: "bulb" | "rec" }) {
+  return (
+    <span
+      className={`border px-4 py-1.5 text-sm tracking-[0.25em] ${
+        tone === "rec" ? "border-rec text-rec" : "border-bulb text-bulb"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+// Tablero de la trivia para la TV: la pregunta y las alternativas se leen acá,
+// mientras los celulares solo muestran los botones de color.
 export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaScore[] }) {
   const [question, setQuestion] = useState<TriviaQuestion | null>(null);
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
@@ -75,7 +88,7 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-10 py-12">
-        <span className="stamp text-amber-bright text-lg">Caso cerrado</span>
+        <Rotulo>FIN DE LA FUNCIÓN</Rotulo>
         <div className="flex w-full max-w-3xl items-end justify-center gap-6">
           {[second, first, third].map((s, i) => {
             if (!s) return null;
@@ -84,16 +97,12 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
             return (
               <div key={s.id} className="flex flex-1 flex-col items-center gap-3">
                 <Avatar photoURL={s.photoURL} name={s.name} size={place === 1 ? 88 : 64} />
-                <p className="max-w-full truncate text-center text-xl text-foreground">
-                  {s.name}
-                </p>
+                <p className="max-w-full truncate text-center text-xl text-bone">{s.name}</p>
                 <div
-                  className={`${height} flex w-full flex-col items-center justify-center border border-paper-border bg-paper`}
+                  className={`${height} flex w-full flex-col items-center justify-center border border-tape-line bg-tape-deep`}
                 >
-                  <span className="font-stencil text-5xl text-amber-bright">{place}</span>
-                  <span className="mt-2 font-mono text-lg text-foreground">
-                    {s.totalPoints}
-                  </span>
+                  <span className="font-cartel text-5xl text-bulb">{place}</span>
+                  <span className="mt-2 text-lg tabular-nums text-bone">{s.totalPoints}</span>
                 </div>
               </div>
             );
@@ -109,12 +118,10 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     return (
       <div className="flex flex-1 flex-col gap-8 py-8">
         <div className="text-center">
-          <p className="font-mono text-sm uppercase tracking-[0.3em] text-muted">
-            Respuesta correcta
-          </p>
+          <p className="text-sm tracking-[0.3em] text-muted">RESPUESTA CORRECTA</p>
           <p className={`mt-4 text-7xl ${correct.text}`}>{correct.shape}</p>
           {question && (
-            <p className="mt-4 text-3xl text-foreground">
+            <p className="mt-4 text-3xl text-bone">
               {question.options[game.lastResult.correctIndex]}
             </p>
           )}
@@ -126,7 +133,7 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
             const pct = totalAnswers > 0 ? (count / totalAnswers) * 100 : 0;
             return (
               <div key={i} className="flex flex-1 flex-col items-center gap-2">
-                <span className="font-mono text-lg text-foreground">{count}</span>
+                <span className="text-lg tabular-nums text-bone">{count}</span>
                 <div
                   className={`${style.bg} w-full transition-all`}
                   style={{ height: `${Math.max(pct * 1.6, 8)}px` }}
@@ -138,17 +145,15 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
         </div>
 
         <div className="mx-auto w-full max-w-2xl">
-          <p className="text-center font-mono text-xs uppercase tracking-[0.3em] text-muted">
-            Marcador
-          </p>
-          <ul className="mt-4 divide-y divide-paper-border">
+          <p className="text-center text-xs tracking-[0.3em] text-muted">MARCADOR DE ALMAS</p>
+          <ul className="mt-4 divide-y divide-tape-line">
             {scores.slice(0, 5).map((s, i) => (
               <li key={s.id} className="flex items-center gap-4 py-3">
-                <span className="w-8 font-stencil text-2xl text-amber-bright">{i + 1}</span>
+                <span className="w-8 font-cartel text-2xl text-bulb">{i + 1}</span>
                 <Avatar photoURL={s.photoURL} name={s.name} size={40} />
-                <span className="min-w-0 flex-1 truncate text-xl text-foreground">{s.name}</span>
-                {s.streak > 1 && <span className="text-lg text-amber-bright">🔥{s.streak}</span>}
-                <span className="font-mono text-xl text-amber-bright">{s.totalPoints}</span>
+                <span className="min-w-0 flex-1 truncate text-xl text-bone">{s.name}</span>
+                {s.streak > 1 && <span className="text-lg text-rec">🔥{s.streak}</span>}
+                <span className="text-xl tabular-nums text-bulb">{s.totalPoints}</span>
               </li>
             ))}
           </ul>
@@ -162,18 +167,19 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     return (
       <div className="flex flex-1 flex-col gap-5 py-8">
         <div className="flex items-center justify-between gap-6">
-          <p className="font-mono text-sm uppercase tracking-[0.3em] text-muted">
-            Pregunta {game.currentIndex + 1} / {game.totalQuestions}
+          <p className="text-sm tracking-[0.3em] text-muted">
+            PREGUNTA {game.currentIndex + 1} / {game.totalQuestions}
           </p>
           <span
-            className={`font-stencil text-7xl leading-none ${timeUp ? "text-red-bright" : "text-amber-bright"
-              }`}
+            className={`font-cartel text-7xl leading-none tabular-nums ${
+              timeUp ? "text-rec" : "text-bulb"
+            }`}
           >
             {remaining ?? "--"}
           </span>
         </div>
 
-        <h2 className="text-center font-semibold text-4xl leading-tight text-foreground lg:text-5xl">
+        <h2 className="text-center text-4xl leading-tight text-bone lg:text-5xl">
           {question.text}
         </h2>
 
@@ -185,10 +191,10 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
             return (
               <div
                 key={i}
-                className={`${style.bg} flex items-center gap-4 px-6 py-6 text-background`}
+                className={`${style.bg} flex items-center gap-4 px-6 py-6 text-tape`}
               >
                 <span className="text-4xl">{style.shape}</span>
-                <span className="text-3xl leading-tight text-white font-bold">{opt}</span>
+                <span className="text-3xl leading-tight font-bold">{opt}</span>
               </div>
             );
           })}
@@ -199,8 +205,8 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
-      <span className="stamp text-amber-bright text-sm">Interrogatorio por comenzar</span>
-      <p className="text-lg text-muted">Los testigos ya pueden entrar desde su celular.</p>
+      <Rotulo>LA FUNCIÓN ESTÁ POR EMPEZAR</Rotulo>
+      <p className="text-lg text-muted">Los seis ya pueden entrar desde su celular.</p>
     </div>
   );
 }

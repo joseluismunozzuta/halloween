@@ -1,5 +1,5 @@
 {
-  "name": "operationjl",
+  "name": "halloween",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -35,5 +35,17 @@
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4.3.3",
     "typescript": "^5"
-  }
+  },
+  "description": "halloween 2026 interactive page",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joseluismunozzuta/halloween.git"
+  },
+  "author": "jlmz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joseluismunozzuta/halloween/issues"
+  },
+  "homepage": "https://github.com/joseluismunozzuta/halloween#readme"
 }

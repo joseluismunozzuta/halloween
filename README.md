@@ -1,87 +1,91 @@
-# 🕵️ Expediente Confidencial JL
+# 🎪 Circo del Terror
 
-> **CASO N.° 001** — Invitación de cumpleaños con temática de expediente de investigación confidencial. Los invitados son "testigos" citados a declarar, y cada uno recibe al azar una pregunta secreta para el interrogatorio grupal del día del evento.
+> **FUNCIÓN ÚNICA — 31 de octubre de 2026, 7:00 pm, casa de Alexandra.**
+> Seis entran. Uno gana.
 
-Construida como una SPA de una sola página con [Next.js](https://nextjs.org) 16 (App Router) y [Firebase](https://firebase.google.com) (Auth + Firestore).
+Agenda viva de una noche de Halloween para seis amigos. Antes del 31 sirve para
+decidir el menú y salir con una tarea asignada; el 31 es el mando de todas las
+dinámicas de la noche.
+
+El sitio es **una cinta VHS que alguien encontró**, grabada en un circo del
+terror. El VHS pone el lenguaje visual; el circo pone el tema, y cada sección
+es una atracción con su propio monstruo.
 
 ## El concepto
 
-El cumpleaños de JL se enmarca como un caso bajo investigación:
+La regla que sostiene el diseño: **el monstruo no acompaña a la sección, la
+sección entra por culpa del monstruo**. El globo de Pennywise no está al lado
+del concurso de disfraces — es lo que te tapa el concurso hasta que revienta.
+El cuchillo de Michael Myers no adorna el plan de supervivencia, lo abre de un
+tajo.
 
-- **Los hechos** — fecha, hora y lugar del evento, con link directo a Google Maps.
-- **Registro de testigo** — los invitados inician sesión con Google y "declaran" si asistirán. Pueden actualizar su declaración cuando quieran, desde cualquier dispositivo.
-- **Interrogatorio** — al confirmar asistencia, cada testigo recibe al azar (sin repetir, hasta agotar el banco de 30) una pregunta sobre JL que debe guardar en secreto hasta el día del caso — revelada con una animación de sobre sellado.
-- **Evidencia requerida** — wishlist de regalos, administrable desde el panel y mostrada como una galería pública.
-- **Revelación del expediente** — el día del evento, la lista completa de testigo → pregunta se desclasifica públicamente (la fecha de corte se aplica a nivel de reglas de Firestore, no solo en el cliente).
-- **Panel del investigador** (`/admin`) — protegido con Google Sign-In, solo accesible para la cuenta configurada como administradora. Permite ver confirmaciones, sembrar el banco de preguntas y gestionar la wishlist.
+| Sección | Personaje | Cómo entra |
+|---|---|---|
+| Portada | Art el payaso | Arrastras el tracking y la cinta se enfoca |
+| Agenda | Chucky | Los reflectores se encienden sobre cada hora |
+| Menú | Leatherface | El carnicero preside la cocina |
+| Disfraces | Pennywise | El globo revienta, sangra, y queda en loop |
+| Trivia | Samara | Sale del televisor, que es donde corre la trivia |
+| Misiones | Jigsaw | «Quiero jugar un juego»: tu misión, en secreto |
+| Supervivencia | Michael Myers | Un tajo abre la sección en dos |
+| Mentiras | Ghostface | La voz al teléfono que miente |
+| Marcador | Cementerio | Lápida para el podio, fantasmas para el resto |
+| Película | Proyector | La bobina tira la votación contra la pared |
+
+## Rutas
+
+| Ruta | Para qué | Pensada para |
+|---|---|---|
+| `/` | El recorrido completo del circo | Celular |
+| `/soy` | «¿Quién eres?» — ata tu cuenta a una persona | Celular |
+| `/trivia` | El mando del jugador | Celular |
+| `/proyeccion` | Tablero de la TV | Pantalla grande |
+| `/admin` | Cabina de proyección (solo el anfitrión) | Cualquiera |
+
+`/proyeccion` acepta `?modo=mentiras` y `&fase=resultado` mientras el backend
+no decida el modo solo.
+
+## Quién es quién
+
+Todos entran con Google, pero Google no sabe que Mar y Jose son pareja. La
+primera vez que entras eliges tu nombre en `/soy` y queda atado a tu cuenta.
+Las tres parejas están en [`src/lib/identidad.ts`](src/lib/identidad.ts), junto
+con un atajo opcional por correo para saltarse la pantalla.
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack, React 19.2, React Compiler)
-- **TypeScript** estricto
-- **Tailwind CSS v4** (tema oscuro carbón/ámbar/rojo, tipografía tipo máquina de escribir)
-- **Firebase**: Authentication (Google) + Firestore (sin backend propio — todo se resuelve desde el cliente vía reglas de seguridad)
+- **Tailwind v4** — los componentes propios viven en `@layer components`, si no
+  el CSS sin capa le gana a las utilidades
+- **Firebase**: Auth (Google) + Firestore, sin backend propio
+- Dos tipografías: **Alfa Slab One** (cartel de circo) y **Share Tech Mono**
+  (visor de cámara)
 
-## Estructura
-
-```
-src/
-  app/
-    page.tsx            # Página pública: ensambla todas las secciones
-    admin/page.tsx       # Panel del investigador (protegido)
-    layout.tsx, globals.css
-  components/
-    CaseStamp.tsx        # Sello de goma reusable (CLASIFICADO / APROBADO)
-    Countdown.tsx         # Countdown en vivo hasta el evento
-    sections/             # Hero, Facts, RsvpForm, Gifts, Kahoot, Notes, GroupReveal
-  lib/
-    firebase.ts           # Init de Firebase + helpers de Google Sign-In
-    event-config.ts       # Fecha, lugar, link de Kahoot, email del admin
-    questions.ts          # Banco de 30 preguntas del interrogatorio
-    rsvp.ts                # Lógica de RSVP y asignación de preguntas (transacción)
-    wishlist.ts            # CRUD de la wishlist/evidencia
-firestore.rules            # Reglas de seguridad (pegar manualmente en Firebase Console)
-```
-
-## Puesta en marcha
-
-### 1. Instalar dependencias
+## Correr
 
 ```bash
 npm install
+npm run dev      # desarrollo
+npm run build    # build de producción
+npm start        # servir el build
 ```
 
-### 2. Configurar Firebase Console (proyecto `operationjl`)
+Firebase requiere, una sola vez desde la consola: habilitar el proveedor
+Google, crear Firestore y pegar [`firestore.rules`](firestore.rules).
 
-Estos pasos son manuales, se hacen una sola vez desde [console.firebase.google.com](https://console.firebase.google.com):
+## Estado
 
-1. **Authentication → Sign-in method**: habilitar el proveedor **Google**.
-2. **Firestore Database**: crear la base de datos (modo producción, elegir región).
-3. **Firestore → Reglas**: pegar el contenido de [`firestore.rules`](firestore.rules) y publicar.
+El frontend está completo. El motor de la trivia está conectado a Firestore y
+funcionando; el resto de las dinámicas todavía usa los datos de muestra de
+[`src/lib/datos-provisionales.ts`](src/lib/datos-provisionales.ts).
 
-La configuración pública del SDK ya está incluida en [`src/lib/firebase.ts`](src/lib/firebase.ts) — no requiere variables de entorno.
-
-### 3. Correr en desarrollo
-
-```bash
-npm run dev
-```
-
-Abrir [http://localhost:3000](http://localhost:3000).
-
-### 4. Sembrar el banco de preguntas
-
-Entrar a `/admin`, iniciar sesión con la cuenta configurada como `ADMIN_EMAIL` (en [`event-config.ts`](src/lib/event-config.ts)) y usar el botón **"Sembrar preguntas"**. Es idempotente — no duplica si ya existen.
+El diseño y el modelo de datos están escritos en
+[`docs/superpowers/specs/2026-10-27-circo-del-terror-design.md`](docs/superpowers/specs/2026-10-27-circo-del-terror-design.md).
 
 ## Editar el contenido
 
-Todo el contenido específico del evento vive en [`src/lib/event-config.ts`](src/lib/event-config.ts): fecha/hora, dirección, link de Kahoot y el email del administrador. El banco de preguntas está en [`src/lib/questions.ts`](src/lib/questions.ts).
-
-## Scripts
-
-```bash
-npm run dev      # Servidor de desarrollo (Turbopack)
-npm run build    # Build de producción
-npm run start    # Servidor de producción
-npm run lint     # ESLint
-```
+- Fecha, lugar e invitados: [`src/lib/event-config.ts`](src/lib/event-config.ts)
+- Bloques de la noche: [`src/lib/agenda.ts`](src/lib/agenda.ts)
+- Parejas: [`src/lib/identidad.ts`](src/lib/identidad.ts)
+- Banco de la trivia: [`src/lib/trivia-bank.ts`](src/lib/trivia-bank.ts)
+- Personajes: `public/personajes/` (los originales, en `src/img/`)

@@ -11,7 +11,7 @@ export function Avatar({
 
   return (
     <div
-      className="shrink-0 overflow-hidden rounded-full border border-paper-border bg-paper"
+      className="shrink-0 overflow-hidden rounded-full border border-tape-line bg-tape-deep"
       style={{ width: size, height: size }}
     >
       {photoURL ? (
@@ -19,7 +19,7 @@ export function Avatar({
         <img src={photoURL} alt={name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center font-mono text-amber-bright"
+          className="flex h-full w-full items-center justify-center text-bulb"
           style={{ fontSize: size * 0.45 }}
         >
           {initial}
