@@ -33,6 +33,9 @@ export default function AdminTriviaPage() {
   const [answeredCount, setAnsweredCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  // El anfitrión también juega, así que la pregunta en espera va tapada: si la
+  // leyera acá la tendría resuelta antes de que aparezca en la televisión.
+  const [destapada, setDestapada] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
@@ -99,6 +102,9 @@ export default function AdminTriviaPage() {
   async function handleOpen(index: number) {
     const question = questions[index];
     if (!question) return;
+    // Cada pregunta nueva vuelve a estar tapada: destapar una no destapa el
+    // resto del banco.
+    setDestapada(false);
     await run("abrir la pregunta", () =>
       openQuestion(question, index, questions.length)
     );
@@ -132,7 +138,7 @@ export default function AdminTriviaPage() {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center">
         <span className="text-[10px] tracking-[0.25em] text-rec">Acceso restringido</span>
-        <h1 className="font-cartel text-2xl text-bone">Control del interrogatorio</h1>
+        <h1 className="font-cartel text-2xl text-bone">Control de la trivia</h1>
         <button
           type="button"
           onClick={() => signInWithGoogle()}
@@ -144,7 +150,7 @@ export default function AdminTriviaPage() {
           href="/admin"
           className="text-xs uppercase tracking-widest text-muted hover:text-bulb"
         >
-          ← Panel del investigador
+          ← Cabina
         </Link>
       </main>
     );
@@ -153,6 +159,8 @@ export default function AdminTriviaPage() {
   const current = questions[game.currentIndex];
   const isOpen = game.status === "question";
   const timeUp = remaining !== null && remaining <= 0;
+  // Una vez que la pregunta está en la televisión ya no hay nada que tapar.
+  const visible = isOpen || game.status === "results" || destapada;
 
   return (
     <main className="flex-1 px-6 py-12">
@@ -160,7 +168,7 @@ export default function AdminTriviaPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-cartel text-2xl text-bulb">
-              Control del interrogatorio
+              Control de la trivia
             </h1>
             <p className="text-sm text-muted">
               Estado: <span className="text-bone">{game.status}</span> ·{" "}
@@ -231,7 +239,23 @@ export default function AdminTriviaPage() {
               )}
             </div>
 
-            {current && (
+            {current && !visible && (
+              <div className="mt-4 border border-dashed border-tape-line px-4 py-5 text-center">
+                <p className="text-sm text-muted">
+                  Pregunta tapada para que puedas jugar. Ábrela y léela en la
+                  televisión, al mismo tiempo que los demás.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDestapada(true)}
+                  className="mt-3 text-[10px] uppercase tracking-[0.2em] text-muted underline hover:text-rec"
+                >
+                  Destapar (me la spoilea)
+                </button>
+              </div>
+            )}
+
+            {current && visible && (
               <>
                 <p className="mt-4 text-lg text-bone">{current.text}</p>
                 <ul className="mt-3 space-y-1.5">
