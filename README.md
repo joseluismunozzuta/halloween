@@ -70,21 +70,26 @@ npm run build    # build de producción
 npm start        # servir el build
 ```
 
-Firebase requiere, una sola vez desde la consola: habilitar el proveedor
-Google, crear Firestore y pegar [`firestore.rules`](firestore.rules).
+El proyecto de Firebase es `halloween2026-cfb37`, y el CLI ya apunta a él
+(`.firebaserc`), asi que publicar las reglas es un comando:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Lo unico que se hace desde la consola, una sola vez, es habilitar el proveedor
+Google en Authentication y crear Firestore.
 
 ## Estado
 
 Frontend y backend completos: todas las dinámicas leen y escriben en Firestore.
 No queda nada con datos de muestra.
 
-Antes de usarlo quedan **tres pasos manuales**, todos en la consola de Firebase
-o desde la cabina:
+Las reglas ya estan publicadas. Quedan **dos pasos**, los dos desde la cabina
+con la cuenta del anfitrion:
 
-1. Pegar [`firestore.rules`](firestore.rules) en Firestore → Reglas y publicar.
-   Hasta que esto pase, el sitio carga pero cualquier escritura se rechaza.
-2. Desde `/admin/trivia`, sembrar el banco de preguntas.
-3. Desde `/admin/noche`, sembrar el banco de misiones.
+1. Desde `/admin/trivia`, sembrar el banco de preguntas.
+2. Desde `/admin/noche`, sembrar el banco de misiones.
 
 Opcional: añadir los correos del grupo en
 [`src/lib/identidad.ts`](src/lib/identidad.ts) para que se salten la pantalla
