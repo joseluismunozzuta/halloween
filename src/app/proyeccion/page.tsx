@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { TriviaBoard } from "@/components/trivia/TriviaBoard";
 import { MentirasBoard } from "@/components/proyeccion/MentirasBoard";
+import { Acecha } from "@/components/proyeccion/Acecha";
+import { Bulbs } from "@/components/tape/Bulbs";
 import {
   IDLE_GAME,
   subscribeGame,
@@ -19,6 +21,11 @@ import type { PersonaId } from "@/lib/identidad";
 /**
  * La pantalla de la TV. Es la única vista del sitio diseñada para horizontal y
  * grande; todo lo demás es de celular.
+ *
+ * No es «la landing en grande»: la landing es la cinta encontrada, y esto es
+ * lo que el proyector tira contra la pared de la carpa. De ahí el telón a los
+ * lados, el haz de luz por arriba, la viñeta que apaga las esquinas y los
+ * personajes acechando el borde.
  *
  * Qué se muestra lo decide `party/live`: si hay una dinámica abierta manda esa,
  * y si no, el tablero de la trivia.
@@ -45,40 +52,69 @@ export default function ProyeccionPage() {
       ? noche.resultadoMentiras
       : null;
 
+  // Pennywise sale a hacer tiempo en la sala de espera, que es la pantalla que
+  // más rato va a estar puesta y la única sin nada que leer. Durante las
+  // preguntas no acecha nadie: ahí la pantalla es para la pregunta. En las
+  // mentiras tampoco, porque Ghostface ya vive dentro de ese tablero.
+  const acechante = !enMentiras && game.status === "idle";
+
   return (
-    <main className="scanlines relative flex h-screen flex-col overflow-hidden px-8 py-6">
-      <header className="flex shrink-0 items-end justify-between gap-6 border-b border-tape-line pb-5">
-        <div className="flex items-center gap-4">
-          <span aria-hidden className="block h-14 w-1.5 shrink-0 bg-bulb" />
-          <div>
-            <p className="text-xs tracking-[0.3em] text-muted">FUNCIÓN ÚNICA · 31 OCT</p>
-            <h1 className="chroma-soft mt-1 font-cartel text-4xl uppercase">{EVENT_NAME}</h1>
+    <main className="scanlines vineta telon relative flex h-screen flex-col overflow-hidden bg-tape">
+      {/* Franjas de carpa, apenas insinuadas al fondo de todo. */}
+      <div aria-hidden className="carpa-fondo pointer-events-none absolute inset-0" />
+
+      <header className="marquesina haz relative z-20 shrink-0 px-12 py-5">
+        <Bulbs cols={16} rows={2} />
+        <div className="relative z-10 flex items-end justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <span aria-hidden className="block h-14 w-1.5 shrink-0 bg-rec" />
+            <div>
+              <p className="flex items-center gap-2 text-xs tracking-[0.3em] text-rec">
+                <span
+                  aria-hidden
+                  className="rec-dot block h-[7px] w-[7px] rounded-full bg-rec"
+                />
+                FUNCIÓN ÚNICA · 31 OCT
+              </p>
+              <h1 className="chroma mt-1.5 font-cartel text-4xl uppercase text-bone">
+                {EVENT_NAME}
+              </h1>
+            </div>
           </div>
+          <p className="pb-1 text-right text-xs leading-relaxed tracking-[0.25em] text-muted">
+            {enMentiras ? "DOS VERDADES Y UNA MENTIRA" : "TRIVIA DE TERROR"}
+          </p>
         </div>
       </header>
 
-      {enMentiras ? (
-        ficha ? (
-          <MentirasBoard
-            autor={ficha.autor}
-            frases={ficha.frases}
-            fase={resultado ? "resultado" : "frases"}
-            indiceMentira={resultado?.indiceMentira}
-            votos={resultado?.votos}
-          />
-        ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-2xl text-muted">
-              Esperando las frases de{" "}
-              <span className="text-bone">{noche.rondaMentiras as PersonaId}</span>…
-            </p>
-          </div>
-        )
-      ) : (
-        <TriviaBoard game={game} scores={scores} sala={sala} />
-      )}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-12">
+        {acechante && (
+          <Acecha src="/personajes/it-payaso.webp" lado="izquierda" ancho={300} alto={520} />
+        )}
 
-      <footer className="shrink-0 pt-4 text-center text-xs tracking-[0.2em] text-muted">
+        {enMentiras ? (
+          ficha ? (
+            <MentirasBoard
+              autor={ficha.autor}
+              frases={ficha.frases}
+              fase={resultado ? "resultado" : "frases"}
+              indiceMentira={resultado?.indiceMentira}
+              votos={resultado?.votos}
+            />
+          ) : (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-2xl text-muted">
+                Esperando las frases de{" "}
+                <span className="text-bone">{noche.rondaMentiras as PersonaId}</span>…
+              </p>
+            </div>
+          )
+        ) : (
+          <TriviaBoard game={game} scores={scores} sala={sala} />
+        )}
+      </div>
+
+      <footer className="relative z-20 shrink-0 border-t border-blood-line px-12 py-3 text-center text-xs tracking-[0.3em] text-muted">
         {enMentiras ? "ELIGE EL NÚMERO DESDE TU CELULAR" : "RESPONDE DESDE TU CELULAR EN /TRIVIA"}
       </footer>
     </main>

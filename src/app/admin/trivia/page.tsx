@@ -31,6 +31,8 @@ import {
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { Avatar } from "@/components/Avatar";
+import { Bulbs } from "@/components/tape/Bulbs";
+import { Osd } from "@/components/tape/Osd";
 
 export default function AdminTriviaPage() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -204,21 +206,24 @@ export default function AdminTriviaPage() {
 
   if (!isAdmin) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24 text-center">
-        <span className="text-[10px] tracking-[0.25em] text-rec">Acceso restringido</span>
-        <h1 className="font-cartel text-2xl text-bone">Control de la trivia</h1>
+      <main className="scanlines relative flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 text-center">
+        <div aria-hidden className="carpa-fondo pointer-events-none absolute inset-0" />
+        <p className="relative text-[10px] tracking-[0.3em] text-rec">ACCESO RESTRINGIDO</p>
+        <h1 className="chroma-soft relative font-cartel text-2xl uppercase text-bone">
+          Control de la trivia
+        </h1>
         <button
           type="button"
           onClick={() => signInWithGoogle()}
-          className="border border-bulb px-6 py-3 text-sm uppercase tracking-widest text-bulb transition-colors hover:bg-bulb hover:text-tape"
+          className="btn-sangre relative"
         >
-          Iniciar sesión con Google
+          Entrar con Google
         </button>
         <Link
           href="/admin"
-          className="text-xs uppercase tracking-widest text-muted hover:text-bulb"
+          className="relative text-[10px] tracking-[0.2em] text-muted transition-colors hover:text-bulb"
         >
-          ← Cabina
+          ← CABINA
         </Link>
       </main>
     );
@@ -231,49 +236,48 @@ export default function AdminTriviaPage() {
   const visible = isOpen || game.status === "results" || destapada;
 
   return (
-    <main className="flex-1 px-6 py-12">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="font-cartel text-2xl text-bulb">
-              Control de la trivia
-            </h1>
-            <p className="text-sm text-muted">
-              Estado: <span className="text-bone">{game.status}</span> ·{" "}
-              {questions.length} preguntas en el banco
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href="/proyeccion"
-              target="_blank"
-              className="border border-bulb px-4 py-2 text-xs uppercase tracking-widest text-bulb transition-colors hover:bg-bulb hover:text-tape"
-            >
-              Abrir proyección ↗
-            </Link>
-            <Link
-              href="/admin"
-              className="border border-tape-line px-4 py-2 text-xs uppercase tracking-widest text-muted transition-colors hover:border-bulb hover:text-bulb"
-            >
-              ← Panel
-            </Link>
-          </div>
-        </div>
+    <main className="scanlines relative min-h-[100svh] px-5 py-7">
+      <div aria-hidden className="carpa-fondo pointer-events-none fixed inset-0" />
 
-        {status && <p className="tape-frame px-4 py-3 text-sm text-bulb">{status}</p>}
+      <div className="relative mx-auto max-w-3xl space-y-5">
+        <Osd right={`${questions.length} PREGUNTAS`} />
 
-        <p className="border border-tape-line bg-tape-deep/60 px-4 py-3 text-xs text-muted">
+        <header className="marquesina relative px-6 py-5">
+          <Bulbs cols={12} rows={2} />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] tracking-[0.3em] text-rec">AL MANDO DE LA FUNCIÓN</p>
+              <h1 className="chroma-soft mt-1.5 font-cartel text-xl uppercase leading-none text-bone">
+                Control de la trivia
+              </h1>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/proyeccion" target="_blank" className="btn-hueso">
+                Proyección ↗
+              </Link>
+              <Link href="/admin" className="btn-riesgo">
+                ← Cabina
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {status && (
+          <p className="border border-bulb bg-bulb/10 px-4 py-3 text-sm text-bulb">{status}</p>
+        )}
+
+        <p className="panel px-4 py-3 text-xs leading-relaxed text-muted">
           Los puntajes se calculan en <strong className="text-bone">este</strong>{" "}
           dispositivo. Mantén esta pestaña abierta durante el juego; si se corta la señal al
           calificar, vuelve a tocar &ldquo;Cerrar y calificar&rdquo; — no se duplican puntos.
         </p>
 
         {/* Sala de espera: de acá sale a cuántos espera el cierre automático. */}
-        <div className="tape-frame px-5 py-4">
+        <div className="panel px-5 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-widest text-muted">
-              Sala de espera · <span className="text-bone">{sala.length}</span>
-            </p>
+            <span className="rotulo">
+              Sala de espera · {sala.length}
+            </span>
             {sala.length > 0 && (
               <button
                 type="button"
@@ -297,7 +301,7 @@ export default function AdminTriviaPage() {
               abrir <span className="text-bone">/trivia</span> en su celular.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-tape-line">
+            <ul className="mt-3 divide-y divide-blood-line">
               {sala.map((i) => (
                 <li key={i.uid} className="flex items-center gap-3 py-2">
                   <Avatar photoURL={i.photoURL} name={i.name} size={28} />
@@ -311,7 +315,7 @@ export default function AdminTriviaPage() {
                         setStatus(`${i.name} salió de la sala.`);
                       })
                     }
-                    className="border border-tape-line px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] text-muted transition-colors hover:border-rec hover:text-rec disabled:opacity-40"
+                    className="btn-riesgo px-2.5 py-1 text-[10px]"
                   >
                     Sacar
                   </button>
@@ -328,7 +332,7 @@ export default function AdminTriviaPage() {
         </div>
 
         {questions.length === 0 && (
-          <div className="tape-frame px-5 py-6 text-center">
+          <div className="panel px-5 py-6 text-center">
             <p className="text-sm text-muted">
               El banco está vacío. Siembra las preguntas para empezar.
             </p>
@@ -336,16 +340,17 @@ export default function AdminTriviaPage() {
               type="button"
               onClick={handleSeed}
               disabled={busy}
-              className="mt-4 border border-bulb px-5 py-2.5 text-xs uppercase tracking-widest text-bulb transition-colors hover:bg-bulb hover:text-tape disabled:opacity-40"
+              className="btn-sangre mt-4"
             >
               Sembrar banco
             </button>
           </div>
         )}
 
-        {/* Pregunta en curso */}
+        {/* Pregunta en curso. El ámbar del borde significa una sola cosa: está
+            en la televisión ahora mismo. */}
         {questions.length > 0 && (
-          <div className="tape-frame px-5 py-5">
+          <div className={`panel px-5 py-5 ${isOpen ? "al-aire" : ""}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs uppercase tracking-widest text-muted">
                 Pregunta {game.currentIndex + 1} de {questions.length}
@@ -421,7 +426,7 @@ export default function AdminTriviaPage() {
                   type="button"
                   onClick={() => handleOpen(game.currentIndex)}
                   disabled={busy || !current}
-                  className="border border-bulb bg-bulb px-5 py-2.5 text-xs uppercase tracking-widest text-tape transition-opacity hover:opacity-90 disabled:opacity-40"
+                  className="btn-sangre"
                 >
                   Abrir pregunta {game.currentIndex + 1}
                 </button>
@@ -432,7 +437,7 @@ export default function AdminTriviaPage() {
                   type="button"
                   onClick={handleGrade}
                   disabled={busy}
-                  className="border border-bulb bg-bulb px-5 py-2.5 text-xs uppercase tracking-widest text-tape transition-opacity hover:opacity-90 disabled:opacity-40"
+                  className="btn-sangre"
                 >
                   Cerrar y calificar
                 </button>
@@ -443,7 +448,7 @@ export default function AdminTriviaPage() {
                   type="button"
                   onClick={() => handleOpen(game.currentIndex + 1)}
                   disabled={busy}
-                  className="border border-bulb px-5 py-2.5 text-xs uppercase tracking-widest text-bulb transition-colors hover:bg-bulb hover:text-tape disabled:opacity-40"
+                  className="btn-hueso"
                 >
                   Siguiente pregunta →
                 </button>
@@ -454,7 +459,7 @@ export default function AdminTriviaPage() {
                   type="button"
                   onClick={() => run("cerrar el caso", () => setGameStatus("finished"))}
                   disabled={busy}
-                  className="border border-tape-line px-5 py-2.5 text-xs uppercase tracking-widest text-muted transition-colors hover:border-bulb hover:text-bulb disabled:opacity-40"
+                  className="btn-riesgo"
                 >
                   Terminar juego
                 </button>
@@ -462,13 +467,13 @@ export default function AdminTriviaPage() {
             </div>
 
             {/* Cuántos hay que esperar para que la pregunta se cierre sola. */}
-            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-tape-line pt-3 text-[11px] text-muted">
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-blood-line pt-3 text-[11px] text-muted">
               <span>Se cierra sola cuando respondan</span>
               <span className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setEsperadosManual(Math.max(0, jugadores - 1))}
-                  className="border border-tape-line px-2 leading-5 text-muted transition-colors hover:border-bulb hover:text-bulb"
+                  className="border border-blood-line px-2 leading-5 text-muted transition-colors hover:border-rec hover:text-rec"
                   aria-label="Esperar a una persona menos"
                 >
                   −
@@ -477,7 +482,7 @@ export default function AdminTriviaPage() {
                 <button
                   type="button"
                   onClick={() => setEsperadosManual(jugadores + 1)}
-                  className="border border-tape-line px-2 leading-5 text-muted transition-colors hover:border-bulb hover:text-bulb"
+                  className="border border-blood-line px-2 leading-5 text-muted transition-colors hover:border-rec hover:text-rec"
                   aria-label="Esperar a una persona más"
                 >
                   +
@@ -509,7 +514,7 @@ export default function AdminTriviaPage() {
 
         {/* Marcador */}
         {scores.length > 0 && (
-          <div className="tape-frame divide-y divide-tape-line">
+          <div className="panel divide-y divide-blood-line">
             {scores.map((s, i) => (
               <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="w-6 font-cartel text-lg text-bulb">{i + 1}</span>
@@ -525,7 +530,7 @@ export default function AdminTriviaPage() {
         )}
 
         {/* Zona de riesgo */}
-        <div className="tape-frame space-y-4 px-5 py-4">
+        <div className="panel space-y-4 px-5 py-4">
           <div>
             <p className="text-xs text-muted">
               Reiniciar borra respuestas y puntajes, pero conserva el banco. Úsalo entre la
@@ -540,13 +545,13 @@ export default function AdminTriviaPage() {
                 })
               }
               disabled={busy}
-              className="mt-3 border border-tape-line px-4 py-2 text-xs uppercase tracking-widest text-muted transition-colors hover:border-rec hover:text-rec disabled:opacity-40"
+              className="btn-riesgo mt-3"
             >
               Reiniciar juego
             </button>
           </div>
 
-          <div className="border-t border-tape-line pt-4">
+          <div className="border-t border-blood-line pt-4">
             <p className="text-xs text-muted">
               Recargar el banco borra las preguntas actuales y vuelve a sembrarlas desde el
               código. Úsalo si editaste las preguntas en{" "}
@@ -566,7 +571,7 @@ export default function AdminTriviaPage() {
                 })
               }
               disabled={busy}
-              className="mt-3 border border-tape-line px-4 py-2 text-xs uppercase tracking-widest text-muted transition-colors hover:border-rec hover:text-rec disabled:opacity-40"
+              className="btn-riesgo mt-3"
             >
               Recargar banco desde el código
             </button>

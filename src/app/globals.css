@@ -20,6 +20,15 @@
 
   --tape-line: rgba(232, 228, 217, 0.14);
 
+  /* --- Rojo de cabina y proyección ---
+     La landing es la cinta; la cabina y la proyección son el aparato que la
+     pasa, y ahí manda el rojo. El ámbar queda reservado para una sola cosa:
+     lo que está AL AIRE en este momento. Si todo fuera ámbar no se sabría
+     qué mirar. */
+  --blood-surface: #170609;
+  --blood-edge: #4a0d12;
+  --blood-line: rgba(255, 31, 61, 0.26);
+
   /* Alternativas de la trivia: cuatro colores que se distinguen sin dudar
      sobre negro, y que además viven dentro de la paleta de la cinta. El
      violeta es el único color nuevo; hacía falta un cuarto que no se
@@ -40,6 +49,9 @@
   --color-bulb: var(--bulb-amber);
   --color-blood: var(--blood);
   --color-blood-dark: var(--blood-dark);
+  --color-blood-surface: var(--blood-surface);
+  --color-blood-edge: var(--blood-edge);
+  --color-blood-line: var(--blood-line);
   --color-muted: var(--muted);
   --color-tape-line: var(--tape-line);
   --color-opt-a: var(--opt-a);
@@ -196,6 +208,208 @@ body {
   background: var(--tape-deep);
 }
 
+/* ───────────────────── La cabina y la pantalla ─────────────────────
+   Las dos pantallas que no son la cinta: la cabina de proyección (el aparato)
+   y lo que se proyecta (la carpa). Comparten el rojo y el cartel de circo. */
+
+/* Bloque de la cabina: chapa roja oscura con el filo iluminado arriba, como
+   un panel de interruptores al que le da la luz de la lámpara. */
+.panel {
+  position: relative;
+  border: 1px solid var(--blood-line);
+  background:
+    linear-gradient(180deg, rgba(255, 31, 61, 0.07), transparent 42%),
+    var(--blood-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 31, 61, 0.22);
+}
+
+/* Rótulo de un panel: la etiqueta pegada al borde de arriba. */
+.rotulo {
+  display: inline-block;
+  margin-top: -1px;
+  border: 1px solid var(--blood-line);
+  border-top: none;
+  background: var(--blood-edge);
+  padding: 0.3rem 0.7rem;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  color: var(--bone);
+  text-transform: uppercase;
+}
+
+/* Lo que está al aire ahora mismo. El único ámbar de la cabina. */
+.al-aire {
+  border-color: var(--bulb-amber);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 140, 26, 0.4),
+    0 0 22px -6px rgba(255, 140, 26, 0.55);
+}
+
+/* Botones. Tres pesos, y ninguno es un rectángulo gris:
+   sangre = la acción principal, hueso = secundaria, riesgo = destructiva. */
+.btn-sangre,
+.btn-hueso,
+.btn-riesgo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid;
+  padding: 0.7rem 1.1rem;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.18s ease-out,
+    color 0.18s ease-out,
+    border-color 0.18s ease-out,
+    box-shadow 0.18s ease-out;
+}
+
+.btn-sangre {
+  border-color: var(--rec-red);
+  background: linear-gradient(180deg, var(--blood), var(--blood-dark));
+  color: var(--bone);
+}
+
+.btn-sangre:hover:not(:disabled) {
+  background: var(--rec-red);
+  box-shadow: 0 0 20px -4px rgba(255, 31, 61, 0.8);
+}
+
+.btn-hueso {
+  border-color: var(--blood-line);
+  background: transparent;
+  color: var(--bone);
+}
+
+.btn-hueso:hover:not(:disabled) {
+  border-color: var(--rec-red);
+  color: var(--rec-red);
+}
+
+.btn-riesgo {
+  border-color: rgba(232, 228, 217, 0.18);
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn-riesgo:hover:not(:disabled) {
+  border-color: var(--rec-red);
+  color: var(--rec-red);
+}
+
+.btn-sangre:disabled,
+.btn-hueso:disabled,
+.btn-riesgo:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* La marquesina: el cartel de entrada de la cabina. Franjas de carpa, filo
+   rojo y los focos persiguiéndose alrededor. */
+.marquesina {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--blood-line);
+  background:
+    repeating-conic-gradient(
+      from 180deg at 50% 120%,
+      rgba(255, 31, 61, 0.13) 0 7deg,
+      transparent 7deg 14deg
+    ),
+    linear-gradient(180deg, var(--blood-edge), var(--blood-surface) 70%);
+}
+
+/* Viñeta de proyección: la pantalla se apaga hacia las esquinas, como la luz
+   de un proyector que no llega a los bordes de la tela. */
+.vineta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 45%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
+
+/* El haz del proyector entrando por arriba. */
+.haz::before {
+  content: "";
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 70%;
+  height: 65%;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse 60% 100% at 50% 0%,
+    rgba(255, 140, 26, 0.1),
+    transparent 70%
+  );
+}
+
+/* Telón: los dos paños de la carpa a los lados de la proyección. */
+.telon::before,
+.telon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4.5vw;
+  max-width: 76px;
+  /* Debajo del contenido: es el paño de la carpa, no una cortina encima de lo
+     que hay que leer. */
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(90, 8, 14, 0.85) 0 14px,
+    rgba(32, 4, 7, 0.85) 14px 30px
+  );
+  mask-image: linear-gradient(90deg, #000 30%, transparent);
+}
+
+.telon::before {
+  left: 0;
+}
+
+.telon::after {
+  right: 0;
+  mask-image: linear-gradient(270deg, #000 30%, transparent);
+}
+
+/* Un personaje acechando el borde de la proyección: oscuro, tras el telón,
+   nunca compitiendo con lo que hay que leer. */
+.acecha {
+  position: absolute;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.5;
+  filter: brightness(0.55) contrast(1.2) saturate(0.7);
+  mask-image: linear-gradient(180deg, transparent, #000 28%, #000 78%, transparent);
+  animation: acecha-respira 9s ease-in-out infinite;
+}
+
+@keyframes acecha-respira {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.42;
+  }
+  50% {
+    transform: translateY(-10px) scale(1.015);
+    opacity: 0.58;
+  }
+}
+
 /* El punto rojo de REC. */
 .rec-dot {
   animation: rec-blink 1.3s steps(1, end) infinite;
@@ -243,6 +457,18 @@ body {
     rgba(255, 31, 61, 0.16) 0 7deg,
     transparent 7deg 14deg
   );
+}
+
+/* La misma carpa, pero como fondo de una pantalla entera: nace del suelo y se
+   apaga antes de llegar arriba. A plena intensidad los rayos se comen el
+   texto, y lo que manda en la proyección es lo que hay que leer. */
+.carpa-fondo {
+  background: repeating-conic-gradient(
+    from 180deg at 50% 100%,
+    rgba(255, 31, 61, 0.075) 0 6deg,
+    transparent 6deg 12deg
+  );
+  mask-image: linear-gradient(0deg, #000 10%, rgba(0, 0, 0, 0.3) 45%, transparent 70%);
 }
 
 /* ───────────────────────── Reveal de atracción ─────────────────────────
@@ -569,7 +795,8 @@ body {
   }
 
   .timbra,
-  .fantasma {
+  .fantasma,
+  .acecha {
     animation: none;
   }
 
