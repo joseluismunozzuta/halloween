@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, signInWithGoogle } from "@/lib/firebase";
@@ -21,6 +21,7 @@ import {
   type TriviaScore,
 } from "@/lib/trivia";
 import { gradeQuestion } from "@/lib/trivia-scoring";
+import { debeCerrarPregunta } from "@/lib/trivia-cierre";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { Avatar } from "@/components/Avatar";
@@ -36,11 +37,20 @@ export default function AdminTriviaPage() {
   // El anfitrión también juega, así que la pregunta en espera va tapada: si la
   // leyera acá la tendría resuelta antes de que aparezca en la televisión.
   const [destapada, setDestapada] = useState(false);
+  // Cuántos jugadores hay que esperar antes de cerrar la pregunta sola. null =
+  // el número detectado; un número = el anfitrión lo corrigió a mano.
+  const [esperadosManual, setEsperadosManual] = useState<number | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
+
+  // Quiénes están jugando. No hay lista de inscritos: un documento de puntaje
+  // nace al calificar la primera pregunta que alguien responde, así que esto
+  // es «los que ya jugaron al menos una pregunta de esta ronda». Vale cero en
+  // la primera pregunta, y por eso ahí no hay cierre automático.
+  const jugadores = esperadosManual ?? scores.length;
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -74,7 +84,10 @@ export default function AdminTriviaPage() {
     );
   }, [isAdmin, game.currentQuestionId]);
 
-  async function run(label: string, fn: () => Promise<void>) {
+  // useCallback porque el cierre automático depende de esto desde un efecto:
+  // si la función se recreara en cada render, el temporizador de gracia se
+  // reiniciaría sin parar y la pregunta no se cerraría nunca.
+  const run = useCallback(async (label: string, fn: () => Promise<void>) => {
     setBusy(true);
     setStatus("");
     try {
@@ -85,7 +98,7 @@ export default function AdminTriviaPage() {
     } finally {
       setBusy(false);
     }
-  }
+  }, []);
 
   async function handleSeed() {
     await run("sembrar el banco", async () => {
@@ -110,21 +123,62 @@ export default function AdminTriviaPage() {
     );
   }
 
-  async function handleGrade() {
-    if (!game.currentQuestionId || !game.questionStartedAt) return;
+  const handleGrade = useCallback(async () => {
+    const { currentQuestionId, questionStartedAt, deadlineSeconds, optionCount } = game;
+    if (!currentQuestionId || !questionStartedAt) return;
     await run("calificar", async () => {
       const summary = await gradeQuestion(
-        game.currentQuestionId!,
-        game.deadlineSeconds,
-        game.optionCount,
-        game.questionStartedAt!
+        currentQuestionId,
+        deadlineSeconds,
+        optionCount,
+        questionStartedAt
       );
       setStatus(
         `Calificado: ${summary.correct}/${summary.answered} acertaron` +
           (summary.soloBonusFor ? ` · ¡${summary.soloBonusFor} fue el único, x2!` : "")
       );
     });
-  }
+  }, [game, run]);
+
+  // Cierre automático: si ya respondieron todos los que están jugando, esperar
+  // al cronómetro es tiempo muerto mirando una pregunta resuelta.
+  //
+  // El candado es por pregunta y se marca ANTES de calificar, no después: sin
+  // eso, una respuesta que llegue tarde volvería a disparar el cierre y
+  // gradeQuestion correría dos veces. (No duplicaría puntos —lleva registro de
+  // lo calificado— pero reescribiría el resultado sin razón.)
+  const autoCerrada = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const questionId = game.currentQuestionId;
+    const cerrar = debeCerrarPregunta({
+      status: game.status,
+      questionId,
+      respondieron: answeredCount,
+      esperados: jugadores,
+      yaCerrada: autoCerrada.current,
+      ocupado: busy,
+    });
+    if (!cerrar || !questionId) return;
+
+    // Medio segundo de gracia para que el último en responder vea su propia
+    // elección marcada antes de que la pantalla cambie a resultados.
+    const id = setTimeout(() => {
+      if (autoCerrada.current === questionId) return;
+      autoCerrada.current = questionId;
+      void handleGrade();
+    }, 500);
+    return () => clearTimeout(id);
+  }, [
+    isAdmin,
+    busy,
+    game.status,
+    game.currentQuestionId,
+    jugadores,
+    answeredCount,
+    handleGrade,
+  ]);
 
   if (user === undefined) {
     return (
@@ -226,7 +280,9 @@ export default function AdminTriviaPage() {
               {isOpen && (
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-bone">
-                    {answeredCount} respondieron
+                    {jugadores > 0
+                      ? `${answeredCount} de ${jugadores} respondieron`
+                      : `${answeredCount} respondieron`}
                   </span>
                   <span
                     className={`font-cartel text-3xl leading-none ${
@@ -328,6 +384,46 @@ export default function AdminTriviaPage() {
                   className="border border-tape-line px-5 py-2.5 text-xs uppercase tracking-widest text-muted transition-colors hover:border-bulb hover:text-bulb disabled:opacity-40"
                 >
                   Terminar juego
+                </button>
+              )}
+            </div>
+
+            {/* Cuántos hay que esperar para que la pregunta se cierre sola. */}
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-tape-line pt-3 text-[11px] text-muted">
+              <span>Se cierra sola cuando respondan</span>
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEsperadosManual(Math.max(0, jugadores - 1))}
+                  className="border border-tape-line px-2 leading-5 text-muted transition-colors hover:border-bulb hover:text-bulb"
+                  aria-label="Esperar a una persona menos"
+                >
+                  −
+                </button>
+                <span className="min-w-6 text-center text-sm text-bone">{jugadores}</span>
+                <button
+                  type="button"
+                  onClick={() => setEsperadosManual(jugadores + 1)}
+                  className="border border-tape-line px-2 leading-5 text-muted transition-colors hover:border-bulb hover:text-bulb"
+                  aria-label="Esperar a una persona más"
+                >
+                  +
+                </button>
+              </span>
+              <span>
+                {jugadores === 0
+                  ? "· en cero no se cierra sola; ciérrala tú"
+                  : esperadosManual === null
+                    ? "· detectados automáticamente"
+                    : `· a mano (detectados: ${scores.length})`}
+              </span>
+              {esperadosManual !== null && (
+                <button
+                  type="button"
+                  onClick={() => setEsperadosManual(null)}
+                  className="underline transition-colors hover:text-bulb"
+                >
+                  volver a automático
                 </button>
               )}
             </div>

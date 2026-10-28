@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsc src/lib/trivia-cierre.ts src/lib/trivia-cierre.test.ts --outDir .tmp-test --module commonjs --moduleResolution node --target es2022 --esModuleInterop --skipLibCheck && node .tmp-test/trivia-cierre.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
