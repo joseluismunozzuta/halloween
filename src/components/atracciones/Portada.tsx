@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bulbs } from "@/components/tape/Bulbs";
 import { Osd } from "@/components/tape/Osd";
 import { Countdown } from "@/components/Countdown";
+import { SesionStrip } from "@/components/SesionStrip";
 import { EVENT_PLACE, GUESTS } from "@/lib/event-config";
 
 const ART = "/personajes/art.webp";
@@ -98,7 +99,7 @@ export function Portada() {
       id="portada"
       className="scanlines relative flex min-h-[100svh] flex-col px-5 py-6"
     >
-      <Osd />
+      <Osd right={<SesionStrip />} />
 
       {/* El escenario: Art el payaso, que además de ser el mejor archivo que
           tenemos es, literalmente, un payaso de circo. */}

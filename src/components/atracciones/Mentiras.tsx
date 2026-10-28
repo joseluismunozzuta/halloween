@@ -1,43 +1,89 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Attraction } from "@/components/tape/Attraction";
-import { FICHAS_MENTIRA, PERSONAS_PENDIENTES } from "@/lib/datos-provisionales";
-import { NOMBRES, TODAS_LAS_PERSONAS } from "@/lib/identidad";
+import { PedirIdentidad } from "@/components/PedirIdentidad";
+import { useSesion } from "@/lib/sesion";
+import { NOMBRES, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
+import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
+import {
+  guardarFicha,
+  suscribirFichas,
+  suscribirFichasListas,
+  votarMentira,
+  type Ficha,
+} from "@/lib/mentiras";
 
 /**
  * Ghostface: la voz al teléfono que miente.
  *
  * Funciona como la trivia, en dos tiempos:
  *  1. **Antes del 31**, cada uno deja sus tres frases —dos verdades y una
- *     mentira— una sola vez, con opción a corregir.
- *  2. **El 31**, cuando ya están las seis, las frases salen EN LA PANTALLA y
- *     el celular solo muestra los números. Por eso acá no se repite el texto:
- *     leerlo en dos sitios parte la atención del grupo.
+ *     mentira— con opción a corregir mientras la ronda no se abra.
+ *  2. **El 31**, las frases salen EN LA PANTALLA y el celular solo manda el
+ *     número. Por eso acá no se repite el texto: leerlo en dos sitios parte la
+ *     atención del grupo.
  */
 export function Mentiras() {
   return (
     <Attraction id="mentiras" number={7} title="Dos verdades y una mentira">
-      {() => <Ficha />}
+      {() => <Ficha_ />}
     </Attraction>
   );
 }
 
 const VACIAS: [string, string, string] = ["", "", ""];
 
-function Ficha() {
+function Ficha_() {
+  const { persona } = useSesion();
   const [frases, setFrases] = useState<[string, string, string]>(VACIAS);
   const [cualMiente, setCualMiente] = useState<number | null>(null);
-  const [enviada, setEnviada] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
   const [voto, setVoto] = useState<number | null>(null);
 
-  const listas = FICHAS_MENTIRA.length + (enviada ? 1 : 0);
-  const total = TODAS_LAS_PERSONAS.length;
-  const faltan = PERSONAS_PENDIENTES.filter((p) => !(enviada && p === "jose"));
-  const rondaAbierta = listas === total;
+  const [listas, setListas] = useState<PersonaId[]>([]);
+  const [fichas, setFichas] = useState<Ficha[]>([]);
+  const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
+
+  useEffect(() => suscribirFichasListas(setListas, () => {}), []);
+  useEffect(() => suscribirFichas(setFichas, () => {}), []);
+  useEffect(() => suscribirNoche(setNoche, () => {}), []);
+
+  // Mi ficha, si ya la dejé: las reglas solo me dejan leer la mía antes de que
+  // la ronda abra, así que esto no filtra nada de nadie.
+  const miFicha = persona ? fichas.find((f) => f.autor === persona) : undefined;
+  const yaDeje = persona ? listas.includes(persona) : false;
+  const faltan = TODAS_LAS_PERSONAS.filter((p) => !listas.includes(p));
+  const rondaAbierta = noche.actividadAbierta === "mentiras";
+  const rondaDeOtro = noche.rondaMentiras && noche.rondaMentiras !== persona;
+
+  // Al pasar a modo edición, precargo lo que ya estaba escrito.
+  useEffect(() => {
+    if (!editando || !miFicha) return;
+    const timeoutId = setTimeout(() => setFrases(miFicha.frases), 0);
+    return () => clearTimeout(timeoutId);
+  }, [editando, miFicha]);
 
   const completa = frases.every((f) => f.trim().length > 2) && cualMiente !== null;
+  const mostrandoFormulario = !yaDeje || editando;
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!persona || !completa) return;
+    setGuardando(true);
+    setError("");
+    try {
+      await guardarFicha(persona, frases, cualMiente!);
+      setEditando(false);
+    } catch {
+      setError("No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   return (
     <>
@@ -70,27 +116,17 @@ function Ficha() {
       <section data-reveal className="mt-6 shrink-0">
         <h3 className="text-[10px] tracking-[0.2em] text-bulb">TUS TRES FRASES</h3>
 
-        {enviada ? (
-          <div className="mt-3 border border-tape-line px-3 py-3">
-            <p className="text-[11.5px] leading-[1.6] text-bone">
-              Listas. Nadie las ve hasta que estemos los seis.
-            </p>
-            <button
-              type="button"
-              onClick={() => setEnviada(false)}
-              className="mt-3 text-[10px] tracking-[0.15em] text-muted underline-offset-4 hover:text-bulb hover:underline"
-            >
-              CORREGIRLAS
-            </button>
+        {!persona ? (
+          <div className="mt-3">
+            <PedirIdentidad accion="dejar tus frases" />
           </div>
-        ) : (
-          <form
-            className="mt-3 space-y-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setEnviada(true);
-            }}
-          >
+        ) : rondaAbierta && !mostrandoFormulario ? (
+          <p className="mt-3 border border-tape-line px-3 py-3 text-[11.5px] leading-[1.6] text-muted">
+            La ronda ya empezó: las frases están en la pantalla y ya no se pueden
+            corregir.
+          </p>
+        ) : mostrandoFormulario ? (
+          <form className="mt-3 space-y-2" onSubmit={enviar}>
             {frases.map((frase, i) => (
               <div key={i} className="flex items-start gap-2">
                 <button
@@ -109,6 +145,7 @@ function Ficha() {
                 <textarea
                   rows={2}
                   value={frase}
+                  maxLength={220}
                   onChange={(e) => {
                     const copia = [...frases] as [string, string, string];
                     copia[i] = e.target.value;
@@ -121,25 +158,40 @@ function Ficha() {
             ))}
 
             <p className="pt-1 text-[10px] leading-[1.5] text-muted">
-              Toca el número de la que sea <span className="text-rec">mentira</span>. Solo tú
-              lo sabes.
+              Toca el número de la que sea <span className="text-rec">mentira</span>. Solo
+              tú lo sabes: se guarda aparte y ni siquiera se puede leer desde acá.
             </p>
 
             <button
               type="submit"
-              disabled={!completa}
+              disabled={!completa || guardando}
               className="w-full border border-bulb bg-bulb py-3 text-[12px] tracking-[0.2em] text-tape transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
             >
-              GUARDAR MIS FRASES
+              {guardando ? "GUARDANDO…" : "GUARDAR MIS FRASES"}
             </button>
+            {error && <p className="text-[11px] text-rec">{error}</p>}
           </form>
+        ) : (
+          <div className="mt-3 border border-tape-line px-3 py-3">
+            <p className="text-[11.5px] leading-[1.6] text-bone">
+              Listas. Nadie las ve hasta que estemos los seis.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setCualMiente(null);
+                setEditando(true);
+              }}
+              className="mt-3 text-[10px] tracking-[0.15em] text-muted underline-offset-4 hover:text-bulb hover:underline"
+            >
+              CORREGIRLAS
+            </button>
+          </div>
         )}
 
         <p className="mt-3 text-[10px] leading-[1.6] text-muted">
-          {listas} de {total} ya las dejaron
-          {faltan.length > 0 && (
-            <> · faltan {faltan.map((p) => NOMBRES[p]).join(", ")}</>
-          )}
+          {listas.length} de {TODAS_LAS_PERSONAS.length} ya las dejaron
+          {faltan.length > 0 && <> · faltan {faltan.map((p) => NOMBRES[p]).join(", ")}</>}
         </p>
       </section>
 
@@ -163,12 +215,21 @@ function Ficha() {
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           {[0, 1, 2].map((i) => {
             const esMio = voto === i;
+            const puedoVotar =
+              rondaAbierta && voto === null && !!noche.rondaMentiras && !!rondaDeOtro;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={!rondaAbierta || voto !== null}
-                onClick={() => setVoto(i)}
+                disabled={!puedoVotar}
+                onClick={() => {
+                  setVoto(i);
+                  if (noche.rondaMentiras) {
+                    votarMentira(noche.rondaMentiras as PersonaId, i).catch(() =>
+                      setVoto(null)
+                    );
+                  }
+                }}
                 aria-label={`Votar que la frase ${i + 1} es la mentira`}
                 className={`flex aspect-square items-center justify-center border font-cartel text-4xl transition-all ${
                   esMio
@@ -181,6 +242,12 @@ function Ficha() {
             );
           })}
         </div>
+
+        {rondaAbierta && !rondaDeOtro && noche.rondaMentiras && (
+          <p className="mt-2 text-[10px] text-muted">
+            Es tu turno: no puedes votar tu propia ficha.
+          </p>
+        )}
       </section>
     </>
   );

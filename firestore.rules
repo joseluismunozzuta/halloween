@@ -171,6 +171,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Marcador público y vacío: dice QUIÉN ya dejó sus frases, sin revelar
+    // ninguna. Sin esto el contador de "faltan cuatro" sería imposible, porque
+    // antes de abrir la ronda cada quien solo puede leer su propia ficha.
+    match /fichasListas/{persona} {
+      allow read: if true;
+      allow create, update: if tengoIdentidad()
+        && miIdentidad().persona == persona
+        && request.resource.data.keys().hasOnly([]);
+      allow delete: if isAdmin();
+    }
+
     // Cuál de las tres es la mentira. Aislada igual que triviaKeys: la escribe
     // su dueño, la lee solo el anfitrión al momento de revelar.
     match /fichaClaves/{persona} {

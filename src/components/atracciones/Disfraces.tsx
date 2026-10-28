@@ -1,18 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Attraction } from "@/components/tape/Attraction";
+import { PedirIdentidad } from "@/components/PedirIdentidad";
 import { seededRandom } from "@/lib/seeded-random";
-import { DISFRACES } from "@/lib/datos-provisionales";
-import { PAREJAS } from "@/lib/identidad";
-
-/**
- * Tres categorías, no cuatro: los concursantes son tres parejas y nadie vota a
- * la suya, así que cada quien elige entre dos. Con cuatro categorías y solo dos
- * opciones la votación se vuelve un trámite.
- */
-const CATEGORIAS = ["Más terrorífico", "Más original", "Más improvisado"] as const;
+import { PAREJAS, parejaDe } from "@/lib/identidad";
+import { useSesion } from "@/lib/sesion";
+import {
+  CATEGORIAS,
+  subirDisfraz,
+  suscribirDisfraces,
+  votarDisfraz,
+  type CategoriaId,
+  type Disfraz,
+} from "@/lib/disfraces";
 
 export function Disfraces() {
   return (
@@ -25,6 +27,16 @@ export function Disfraces() {
 function Escenario({ open }: { open: boolean }) {
   const [tocado, setTocado] = useState(false);
   const reventado = open || tocado;
+
+  const { persona } = useSesion();
+  const miPareja = persona ? parejaDe(persona).id : null;
+  const [disfraces, setDisfraces] = useState<Disfraz[]>([]);
+  const [votos, setVotos] = useState<Partial<Record<CategoriaId, string>>>({});
+  const [subiendo, setSubiendo] = useState(false);
+  const [errorFoto, setErrorFoto] = useState("");
+  const entrada = useRef<HTMLInputElement>(null);
+
+  useEffect(() => suscribirDisfraces(setDisfraces, () => {}), []);
 
   // Con semilla fija: servidor y cliente calculan la misma salpicadura.
   const { gotas, chorros } = useMemo(() => {
@@ -192,39 +204,127 @@ function Escenario({ open }: { open: boolean }) {
         </div>
 
         {/* Los casilleros de las fotos */}
-        {/* Una foto por pareja, no por persona: son tres disfraces, no seis. */}
+        {/* Una foto por pareja, no por persona: son tres disfraces, no seis.
+            Solo puedes tocar la de tu propia pareja — lo exige la regla de
+            Firestore, no solo la interfaz. */}
         <div
           data-reveal
           style={{ "--reveal-delay": "1s" } as React.CSSProperties}
           className="absolute inset-x-[6%] bottom-[5%] z-40 grid grid-cols-3 gap-1.5"
         >
-          {DISFRACES.map((disfraz) => {
-            const pareja = PAREJAS.find((p) => p.id === disfraz.parejaId)!;
+          {PAREJAS.map((pareja) => {
+            const disfraz = disfraces.find((d) => d.parejaId === pareja.id);
+            const esMia = miPareja === pareja.id;
             return (
-              <div
-                key={disfraz.parejaId}
-                className="flex aspect-[3/4] flex-col items-center justify-center gap-1 rounded-[3px] border border-tape-line bg-tape-deep/90 px-1 text-center"
-              >
-                <span className="text-base leading-none text-muted" aria-hidden>
-                  {disfraz.foto ? "📷" : "+"}
-                </span>
-                <span className="text-[9px] leading-[1.25] text-muted">{pareja.nombre}</span>
+              <div key={pareja.id} className="relative">
+                <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-1 overflow-hidden rounded-[3px] border border-tape-line bg-tape-deep/90 px-1 text-center">
+                  {disfraz?.foto ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={disfraz.foto}
+                      alt={pareja.nombre}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <span className="text-base leading-none text-muted" aria-hidden>
+                        {esMia ? "+" : "·"}
+                      </span>
+                      <span className="text-[9px] leading-[1.25] text-muted">
+                        {pareja.nombre}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {esMia && (
+                  <button
+                    type="button"
+                    onClick={() => entrada.current?.click()}
+                    disabled={subiendo}
+                    className="absolute inset-x-0 bottom-0 z-10 bg-tape/80 py-1 text-[8px] tracking-[0.1em] text-bulb"
+                  >
+                    {subiendo ? "···" : disfraz?.foto ? "CAMBIAR" : "SUBIR"}
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
+      <input
+        ref={entrada}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const archivo = e.target.files?.[0];
+          e.target.value = "";
+          if (!archivo || !miPareja || !persona) return;
+          setSubiendo(true);
+          setErrorFoto("");
+          try {
+            await subirDisfraz(miPareja, persona, archivo);
+          } catch (err) {
+            setErrorFoto(
+              err instanceof Error && err.message === "foto-muy-pesada"
+                ? "Esa foto pesa demasiado. Prueba con otra."
+                : "No se pudo subir."
+            );
+          } finally {
+            setSubiendo(false);
+          }
+        }}
+      />
+
       <div data-reveal className="mt-4 shrink-0">
         <p className="text-[11px] leading-[1.7] text-muted">
           Una foto por pareja, al llegar. Voto secreto, y nadie vota a su propia
           pareja.
         </p>
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-chroma-cyan">
-          {CATEGORIAS.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
+        {errorFoto && <p className="mt-2 text-[11px] text-rec">{errorFoto}</p>}
+
+        {persona ? (
+          <div className="mt-4 space-y-3">
+            {CATEGORIAS.map((categoria) => (
+              <div key={categoria.id}>
+                <p className="text-[10px] tracking-[0.15em] text-chroma-cyan">
+                  {categoria.nombre.toUpperCase()}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {PAREJAS.filter((p) => p.id !== miPareja).map((pareja) => {
+                    const esMi = votos[categoria.id] === pareja.id;
+                    return (
+                      <button
+                        key={pareja.id}
+                        type="button"
+                        onClick={() => {
+                          setVotos((v) => ({ ...v, [categoria.id]: pareja.id }));
+                          votarDisfraz(categoria.id, pareja.id).catch(() => {});
+                        }}
+                        aria-pressed={esMi}
+                        className={`border px-2 py-2 text-[11px] transition-colors ${
+                          esMi
+                            ? "border-chroma-cyan bg-chroma-cyan/10 text-chroma-cyan"
+                            : "border-tape-line text-bone hover:border-chroma-cyan"
+                        }`}
+                      >
+                        {pareja.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className="text-[10px] leading-[1.5] text-muted">
+              Nadie ve los votos hasta que JL cierre la votación.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <PedirIdentidad accion="subir tu foto y votar" />
+          </div>
+        )}
       </div>
     </>
   );

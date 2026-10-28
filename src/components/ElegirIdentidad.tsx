@@ -13,10 +13,14 @@ import { NOMBRES, PAREJAS, type PersonaId } from "@/lib/identidad";
  */
 export function ElegirIdentidad({
   tomadas = [],
+  guardando = false,
+  error = "",
   onElegir,
 }: {
   /** Nombres que otra cuenta ya reclamó. Llegan de Firestore. */
   tomadas?: readonly PersonaId[];
+  guardando?: boolean;
+  error?: string;
   onElegir?: (persona: PersonaId) => void;
 }) {
   const [elegida, setElegida] = useState<PersonaId | null>(null);
@@ -68,12 +72,18 @@ export function ElegirIdentidad({
 
         <button
           type="button"
-          disabled={elegida === null}
+          disabled={elegida === null || guardando}
           onClick={() => elegida && onElegir?.(elegida)}
           className="mt-7 w-full border border-bulb bg-bulb py-3.5 text-[12px] tracking-[0.2em] text-tape transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
         >
-          {elegida ? `SOY ${NOMBRES[elegida].toUpperCase()}` : "ELIGE TU NOMBRE"}
+          {guardando
+            ? "GUARDANDO…"
+            : elegida
+              ? `SOY ${NOMBRES[elegida].toUpperCase()}`
+              : "ELIGE TU NOMBRE"}
         </button>
+
+        {error && <p className="mt-3 text-center text-[11px] text-rec">{error}</p>}
 
         <p className="mt-4 text-center text-[10px] leading-[1.6] text-muted">
           ¿Te equivocaste? JL puede liberar tu nombre desde la cabina.
