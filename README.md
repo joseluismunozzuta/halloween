@@ -75,12 +75,38 @@ Google, crear Firestore y pegar [`firestore.rules`](firestore.rules).
 
 ## Estado
 
-El frontend está completo. El motor de la trivia está conectado a Firestore y
-funcionando; el resto de las dinámicas todavía usa los datos de muestra de
-[`src/lib/datos-provisionales.ts`](src/lib/datos-provisionales.ts).
+Frontend y backend completos: todas las dinámicas leen y escriben en Firestore.
+No queda nada con datos de muestra.
+
+Antes de usarlo quedan **tres pasos manuales**, todos en la consola de Firebase
+o desde la cabina:
+
+1. Pegar [`firestore.rules`](firestore.rules) en Firestore → Reglas y publicar.
+   Hasta que esto pase, el sitio carga pero cualquier escritura se rechaza.
+2. Desde `/admin/trivia`, sembrar el banco de preguntas.
+3. Desde `/admin/noche`, sembrar el banco de misiones.
+
+Opcional: añadir los correos del grupo en
+[`src/lib/identidad.ts`](src/lib/identidad.ts) para que se salten la pantalla
+de «¿quién eres?».
 
 El diseño y el modelo de datos están escritos en
 [`docs/superpowers/specs/2026-10-27-circo-del-terror-design.md`](docs/superpowers/specs/2026-10-27-circo-del-terror-design.md).
+
+### Cómo se reparten los puntos
+
+Cada dinámica aporta al mismo Marcador de Almas, y la trivia vuelca su
+**puesto final** —no sus puntos crudos— para que no decida la noche ella sola.
+
+| Dinámica | Aporta |
+|---|---|
+| Trivia | 1000 / 800 / 600 / 400 / 300 / 200 según el puesto |
+| Disfraces | 400 por categoría ganada, a los dos de la pareja |
+| Supervivencia | 600 al mejor plan |
+| Mentiras | 200 por acertar la ajena, 150 por cada quien que no descubra la tuya |
+| Misiones | 500 si el grupo da la tuya por cumplida |
+
+Los números viven en [`src/lib/almas.ts`](src/lib/almas.ts).
 
 ## Editar el contenido
 
