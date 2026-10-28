@@ -13,6 +13,7 @@ import {
 import { EVENT_NAME } from "@/lib/event-config";
 import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
 import { suscribirFichas, type Ficha } from "@/lib/mentiras";
+import { suscribirSala, type Inscrito } from "@/lib/trivia-sala";
 import type { PersonaId } from "@/lib/identidad";
 
 /**
@@ -27,9 +28,11 @@ export default function ProyeccionPage() {
   const [scores, setScores] = useState<TriviaScore[]>([]);
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [fichas, setFichas] = useState<Ficha[]>([]);
+  const [sala, setSala] = useState<Inscrito[]>([]);
 
   useEffect(() => subscribeGame(setGame), []);
   useEffect(() => subscribeScores(setScores), []);
+  useEffect(() => suscribirSala(setSala, () => {}), []);
   useEffect(() => suscribirNoche(setNoche, () => {}), []);
   useEffect(() => suscribirFichas(setFichas, () => {}), []);
 
@@ -72,7 +75,7 @@ export default function ProyeccionPage() {
           </div>
         )
       ) : (
-        <TriviaBoard game={game} scores={scores} />
+        <TriviaBoard game={game} scores={scores} sala={sala} />
       )}
 
       <footer className="shrink-0 pt-4 text-center text-xs tracking-[0.2em] text-muted">

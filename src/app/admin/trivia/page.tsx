@@ -21,7 +21,13 @@ import {
   type TriviaScore,
 } from "@/lib/trivia";
 import { gradeQuestion } from "@/lib/trivia-scoring";
-import { debeCerrarPregunta } from "@/lib/trivia-cierre";
+import { cuantosEsperar, debeCerrarPregunta } from "@/lib/trivia-cierre";
+import {
+  sacarDeLaSala,
+  suscribirSala,
+  vaciarSala,
+  type Inscrito,
+} from "@/lib/trivia-sala";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { Avatar } from "@/components/Avatar";
@@ -31,6 +37,7 @@ export default function AdminTriviaPage() {
   const [game, setGame] = useState<GameState>(IDLE_GAME);
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
   const [scores, setScores] = useState<TriviaScore[]>([]);
+  const [sala, setSala] = useState<Inscrito[]>([]);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -46,11 +53,13 @@ export default function AdminTriviaPage() {
   const isAdmin = user?.email === ADMIN_EMAIL;
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
 
-  // Quiénes están jugando. No hay lista de inscritos: un documento de puntaje
-  // nace al calificar la primera pregunta que alguien responde, así que esto
-  // es «los que ya jugaron al menos una pregunta de esta ronda». Vale cero en
-  // la primera pregunta, y por eso ahí no hay cierre automático.
-  const jugadores = esperadosManual ?? scores.length;
+  // A cuántos esperar para cerrar la pregunta sola. La sala de espera es la
+  // fuente buena; el resto es red de seguridad. Ver cuantosEsperar().
+  const jugadores = cuantosEsperar({
+    enLaSala: sala.length,
+    conPuntaje: scores.length,
+    manual: esperadosManual,
+  });
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -60,6 +69,11 @@ export default function AdminTriviaPage() {
   useEffect(() => {
     if (!isAdmin) return;
     return subscribeScores(setScores);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    return suscribirSala(setSala);
   }, [isAdmin]);
 
   useEffect(() => {
@@ -254,6 +268,65 @@ export default function AdminTriviaPage() {
           calificar, vuelve a tocar &ldquo;Cerrar y calificar&rdquo; — no se duplican puntos.
         </p>
 
+        {/* Sala de espera: de acá sale a cuántos espera el cierre automático. */}
+        <div className="tape-frame px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-widest text-muted">
+              Sala de espera · <span className="text-bone">{sala.length}</span>
+            </p>
+            {sala.length > 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  run("vaciar la sala", async () => {
+                    await vaciarSala();
+                    setStatus("Sala vacía.");
+                  })
+                }
+                className="text-[10px] uppercase tracking-[0.2em] text-muted underline transition-colors hover:text-rec disabled:opacity-40"
+              >
+                Vaciar
+              </button>
+            )}
+          </div>
+
+          {sala.length === 0 ? (
+            <p className="mt-3 text-xs text-muted">
+              Nadie entró todavía. Cada quien aparece acá —y en la televisión— al
+              abrir <span className="text-bone">/trivia</span> en su celular.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-tape-line">
+              {sala.map((i) => (
+                <li key={i.uid} className="flex items-center gap-3 py-2">
+                  <Avatar photoURL={i.photoURL} name={i.name} size={28} />
+                  <span className="min-w-0 flex-1 truncate text-sm text-bone">{i.name}</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      run("sacar de la sala", async () => {
+                        await sacarDeLaSala(i.uid);
+                        setStatus(`${i.name} salió de la sala.`);
+                      })
+                    }
+                    className="border border-tape-line px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] text-muted transition-colors hover:border-rec hover:text-rec disabled:opacity-40"
+                  >
+                    Sacar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="mt-3 text-[11px] leading-[1.6] text-muted">
+            Saca a quien se haya quedado sin batería: si no, la pregunta espera
+            una respuesta que no va a llegar. Ojo que si su celular sigue vivo
+            vuelve a entrar solo; para imponer un número usa el ajuste de abajo.
+          </p>
+        </div>
+
         {questions.length === 0 && (
           <div className="tape-frame px-5 py-6 text-center">
             <p className="text-sm text-muted">
@@ -411,11 +484,15 @@ export default function AdminTriviaPage() {
                 </button>
               </span>
               <span>
-                {jugadores === 0
-                  ? "· en cero no se cierra sola; ciérrala tú"
-                  : esperadosManual === null
-                    ? "· detectados automáticamente"
-                    : `· a mano (detectados: ${scores.length})`}
+                {esperadosManual !== null
+                  ? jugadores === 0
+                    ? "· a mano en cero: no se cierra sola, ciérrala tú"
+                    : `· a mano (en la sala: ${sala.length})`
+                  : jugadores === 0
+                    ? "· la sala está vacía; no se cierra sola"
+                    : sala.length > 0
+                      ? "· los que están en la sala"
+                      : "· nadie se inscribió: los que tienen puntaje"}
               </span>
               {esperadosManual !== null && (
                 <button

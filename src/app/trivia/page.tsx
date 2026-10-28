@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, signInWithGoogle } from "@/lib/firebase";
@@ -14,6 +14,7 @@ import {
   type GameState,
   type TriviaScore,
 } from "@/lib/trivia";
+import { entrarALaSala, suscribirSala, type Inscrito } from "@/lib/trivia-sala";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { Avatar } from "@/components/Avatar";
@@ -30,6 +31,7 @@ export default function TriviaPage() {
   // Se guarda junto al id de la pregunta: así una respuesta vieja nunca se
   // interpreta como respuesta de la pregunta nueva al cambiar de ronda.
   const [answer, setAnswer] = useState<{ questionId: string; index: number } | null>(null);
+  const [sala, setSala] = useState<Inscrito[]>([]);
   const [sending, setSending] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
@@ -37,8 +39,10 @@ export default function TriviaPage() {
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => subscribeGame(setGame), []);
   useEffect(() => subscribeScores(setScores), []);
+  useEffect(() => suscribirSala(setSala, () => {}), []);
 
   const jugador = user && !user.isAnonymous ? user : user === undefined ? undefined : null;
+  const enLaSala = jugador ? sala.some((i) => i.uid === jugador.uid) : false;
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
 
   // Solo cuenta si corresponde a la pregunta que está en pantalla.
@@ -48,6 +52,33 @@ export default function TriviaPage() {
     answer && game.lastResult && answer.questionId === game.lastResult.questionId
       ? answer.index
       : null;
+
+  // Entrar a esta pantalla es inscribirse: marca presencia en la sala para que
+  // la televisión muestre quién está listo y el cierre automático de la
+  // pregunta sepa a cuántos esperar.
+  //
+  // Se vuelve a marcar si el jugador desaparece de la lista, que es lo que pasa
+  // cuando el anfitrión saca a alguien por creerlo desconectado: si el celular
+  // sigue vivo, vuelve a entrar solo. El tope de intentos está para que un
+  // error de escritura no se convierta en un bucle contra Firestore.
+  const intentosSala = useRef(0);
+
+  useEffect(() => {
+    if (!jugador || enLaSala) return;
+    if (intentosSala.current >= 5) return;
+    intentosSala.current += 1;
+    const timeoutId = setTimeout(() => {
+      void entrarALaSala()
+        .then(() => {
+          intentosSala.current = 0;
+        })
+        .catch(() => {
+          // Silencioso a propósito: no estar en la lista no le impide jugar,
+          // y un error acá no es algo que el jugador pueda resolver.
+        });
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [jugador, enLaSala]);
 
   // Recupera la respuesta ya enviada (por si recargó el celular a mitad de la
   // pregunta). Todo diferido para no llamar setState dentro del efecto.
@@ -237,11 +268,36 @@ export default function TriviaPage() {
     );
   } else {
     body = (
-      <div className="tape-frame px-6 py-12 text-center">
+      <div className="tape-frame px-6 py-10 text-center">
         <p className="text-[11px] tracking-[0.25em] text-bulb">SALA DE ESPERA</p>
-        <p className="mt-6 text-[12px] leading-[1.7] text-muted">
-          La trivia todavía no empieza. Deja esta pantalla abierta: arranca sola.
+        <p className="mt-5 text-[12px] leading-[1.7] text-muted">
+          {enLaSala
+            ? "Ya estás dentro. Deja esta pantalla abierta: arranca sola."
+            : "La trivia todavía no empieza. Deja esta pantalla abierta: arranca sola."}
         </p>
+
+        {sala.length > 0 && (
+          <div className="mt-7 border-t border-tape-line pt-6">
+            <p className="text-[10px] tracking-[0.2em] text-muted">
+              {sala.length === 1 ? "1 EN LA SALA" : `${sala.length} EN LA SALA`}
+            </p>
+            <ul className="mt-4 flex flex-wrap justify-center gap-4">
+              {sala.map((i) => (
+                <li key={i.uid} className="flex w-16 flex-col items-center gap-1.5">
+                  <Avatar photoURL={i.photoURL} name={i.name} size={40} />
+                  <span
+                    className={`w-full truncate text-center text-[10px] ${
+                      i.uid === jugador?.uid ? "text-bulb" : "text-muted"
+                    }`}
+                  >
+                    {i.name.split(" ")[0]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {myScore && (
           <p className="mt-6 text-[10px] tracking-[0.2em] text-muted">
             TUS PUNTOS: <span className="text-bulb">{myScore.totalPoints}</span>

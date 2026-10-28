@@ -5,6 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { getQuestion, type GameState, type TriviaQuestion, type TriviaScore } from "@/lib/trivia";
+import type { Inscrito } from "@/lib/trivia-sala";
 
 // Carousel de evidencia fotográfica de la pregunta (daisyUI): avanza solo
 // cada 1.5 s y al llegar a la última vuelve a la primera (loop infinito).
@@ -64,7 +65,15 @@ function Rotulo({ children, tone = "bulb" }: { children: React.ReactNode; tone?:
 
 // Tablero de la trivia para la TV: la pregunta y las alternativas se leen acá,
 // mientras los celulares solo muestran los botones de color.
-export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaScore[] }) {
+export function TriviaBoard({
+  game,
+  scores,
+  sala,
+}: {
+  game: GameState;
+  scores: TriviaScore[];
+  sala: Inscrito[];
+}) {
   const [question, setQuestion] = useState<TriviaQuestion | null>(null);
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
 
@@ -203,10 +212,37 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     );
   }
 
+  // Antes de empezar, la TV es la lista de inscritos: entrar a /trivia en el
+  // celular te pone acá, y es la única señal que tiene el grupo de que su
+  // teléfono quedó conectado de verdad.
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-8">
       <Rotulo>LA FUNCIÓN ESTÁ POR EMPEZAR</Rotulo>
-      <p className="text-lg text-muted">Los seis ya pueden entrar desde su celular.</p>
+
+      {sala.length === 0 ? (
+        <p className="text-lg text-muted">
+          Entra desde tu celular en <span className="text-bone">/trivia</span> y
+          aparecerás acá.
+        </p>
+      ) : (
+        <>
+          <ul className="flex max-w-5xl flex-wrap justify-center gap-10">
+            {sala.map((i) => (
+              <li key={i.uid} className="flex w-32 flex-col items-center gap-3">
+                <Avatar photoURL={i.photoURL} name={i.name} size={88} />
+                <span className="w-full truncate text-center text-xl text-bone">
+                  {i.name.split(" ")[0]}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-lg text-muted">
+            {sala.length === 1
+              ? "1 en la sala · faltan los demás"
+              : `${sala.length} en la sala`}
+          </p>
+        </>
+      )}
     </div>
   );
 }
