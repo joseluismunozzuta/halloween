@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Bulbs } from "@/components/tape/Bulbs";
+import { Osd } from "@/components/tape/Osd";
 import { useSesion } from "@/lib/sesion";
 import { signInWithGoogle } from "@/lib/firebase";
 import { NOMBRES, PAREJAS, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
@@ -60,18 +63,20 @@ export default function CabinaPage() {
   if (!esAdmin) {
     return (
       <main className="scanlines relative flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 text-center">
-        <p className="text-[10px] tracking-[0.25em] text-rec">ACCESO RESTRINGIDO</p>
-        <h1 className="font-cartel text-2xl uppercase">Cabina de proyección</h1>
+        <div aria-hidden className="carpa-fondo pointer-events-none absolute inset-0" />
+        <p className="relative text-[10px] tracking-[0.3em] text-rec">ACCESO RESTRINGIDO</p>
+        <h1 className="chroma-soft relative font-cartel text-2xl uppercase text-bone">
+          Cabina de la noche
+        </h1>
         {!user && (
-          <button
-            type="button"
-            onClick={() => signInWithGoogle()}
-            className="border border-bulb px-6 py-3 text-[11px] tracking-[0.2em] text-bulb hover:bg-bulb hover:text-tape"
-          >
-            ENTRAR CON GOOGLE
+          <button type="button" onClick={() => signInWithGoogle()} className="btn-sangre relative">
+            Entrar con Google
           </button>
         )}
-        <Link href="/" className="text-[10px] tracking-[0.2em] text-muted hover:text-bulb">
+        <Link
+          href="/"
+          className="relative text-[10px] tracking-[0.2em] text-muted transition-colors hover:text-bulb"
+        >
           ← VOLVER
         </Link>
       </main>
@@ -117,32 +122,40 @@ function Controles({
   const personaPorUid = new Map(identidades.map((i) => [i.uid, i.persona]));
 
   return (
-    <main className="scanlines relative min-h-[100svh] px-5 py-8">
-      <div className="mx-auto max-w-xl space-y-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-cartel text-2xl uppercase text-bulb">Cabina</h1>
-            <p className="mt-1 text-[11px] text-muted">
+    <main className="scanlines relative min-h-[100svh] px-5 py-7">
+      <div aria-hidden className="carpa-fondo pointer-events-none fixed inset-0" />
+
+      <div className="relative mx-auto max-w-xl space-y-5">
+        <Osd right={noche.actividadAbierta?.toUpperCase() ?? "SIN DINÁMICA ABIERTA"} />
+
+        <header className="marquesina relative px-5 py-5">
+          <Bulbs cols={11} rows={2} />
+          <div className="relative z-10">
+            <p className="text-[10px] tracking-[0.3em] text-rec">DETRÁS DE LA CARPA</p>
+            <h1 className="chroma-soft mt-1.5 font-cartel text-[clamp(1.15rem,5.6vw,1.6rem)] uppercase leading-none text-bone">
+              Cabina de la noche
+            </h1>
+            <p className="mt-2 text-[11px] text-muted">
               Dinámica abierta:{" "}
               <span className="text-bone">{noche.actividadAbierta ?? "ninguna"}</span>
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="relative z-10 mt-4 flex gap-2">
             <Link
               href="/proyeccion"
               target="_blank"
-              className="border border-bulb px-3 py-2 text-[10px] tracking-[0.15em] text-bulb hover:bg-bulb hover:text-tape"
+              className="btn-hueso px-3 py-2 text-[10px]"
             >
               PROYECCIÓN ↗
             </Link>
             <Link
               href="/admin/trivia"
-              className="border border-tape-line px-3 py-2 text-[10px] tracking-[0.15em] text-muted hover:border-bulb hover:text-bulb"
+              className="btn-riesgo px-3 py-2 text-[10px]"
             >
               TRIVIA
             </Link>
           </div>
-        </div>
+        </header>
 
         {aviso && (
           <p className="border border-bulb bg-bulb/10 px-4 py-3 text-[11px] text-bulb">{aviso}</p>
@@ -179,7 +192,7 @@ function Controles({
         </Bloque>
 
         {/* Mentiras */}
-        <Bloque titulo="Dos verdades y una mentira">
+        <Bloque titulo="Dos verdades y una mentira" personaje="/personajes/ghostface.webp">
           <p className="text-[10px] text-muted">
             {listas.length} de {TODAS_LAS_PERSONAS.length} dejaron sus frases.
           </p>
@@ -219,7 +232,7 @@ function Controles({
                 return `Revelada la de ${NOMBRES[ronda]}: ${acertaron.length} acertaron.`;
               })
             }
-            className="mt-3 w-full border border-bulb bg-bulb py-2.5 text-[11px] tracking-[0.15em] text-tape disabled:opacity-35"
+            className="btn-sangre mt-3 w-full"
           >
             REVELAR LA MENTIRA
           </button>
@@ -230,7 +243,7 @@ function Controles({
         </Bloque>
 
         {/* Disfraces */}
-        <Bloque titulo="Concurso de disfraces">
+        <Bloque titulo="Concurso de disfraces" personaje="/personajes/it-payaso.webp">
           <button
             type="button"
             disabled={ocupado}
@@ -247,7 +260,7 @@ function Controles({
                 return texto || "No hubo votos todavía.";
               })
             }
-            className="w-full border border-bulb bg-bulb py-2.5 text-[11px] tracking-[0.15em] text-tape disabled:opacity-35"
+            className="btn-sangre w-full"
           >
             CERRAR VOTACIÓN Y REPARTIR PUNTOS
           </button>
@@ -264,7 +277,7 @@ function Controles({
           <select
             value={ganadorPlan}
             onChange={(e) => setGanadorPlan(e.target.value as PersonaId | "")}
-            className="mt-2 w-full border border-tape-line bg-tape-deep px-3 py-2.5 text-[12px] text-bone"
+            className="mt-2 w-full border border-blood-line bg-tape-deep px-3 py-2.5 text-[12px] text-bone"
           >
             <option value="">Elige al ganador…</option>
             {TODAS_LAS_PERSONAS.map((p) => (
@@ -284,14 +297,14 @@ function Controles({
                 return `${NOMBRES[ganadorPlan as PersonaId]} se lleva la supervivencia.`;
               })
             }
-            className="mt-2 w-full border border-bulb py-2.5 text-[11px] tracking-[0.15em] text-bulb hover:bg-bulb hover:text-tape disabled:opacity-35"
+            className="btn-hueso mt-2 w-full"
           >
             DAR {PUNTOS.mejorPlan} PUNTOS
           </button>
         </Bloque>
 
         {/* Misiones */}
-        <Bloque titulo="Misiones secretas">
+        <Bloque titulo="Misiones secretas" personaje="/personajes/jigsaw.webp">
           <button
             type="button"
             disabled={ocupado}
@@ -301,7 +314,7 @@ function Controles({
                 return n > 0 ? `Sembradas ${n} misiones.` : "El banco ya estaba sembrado.";
               })
             }
-            className="w-full border border-tape-line py-2.5 text-[11px] tracking-[0.15em] text-muted hover:border-bulb hover:text-bulb disabled:opacity-35"
+            className="btn-riesgo w-full"
           >
             SEMBRAR EL BANCO
           </button>
@@ -348,7 +361,7 @@ function Controles({
                 return `Volcadas ${Object.keys(puntos).length} misiones cumplidas.`;
               })
             }
-            className="mt-3 w-full border border-bulb py-2.5 text-[11px] tracking-[0.15em] text-bulb hover:bg-bulb hover:text-tape disabled:opacity-35"
+            className="btn-hueso mt-3 w-full"
           >
             VOLCAR PUNTOS DE MISIONES
           </button>
@@ -374,14 +387,14 @@ function Controles({
                 return `Volcados ${Object.keys(puntos).length} puestos de la trivia.`;
               })
             }
-            className="mt-3 w-full border border-bulb bg-bulb py-2.5 text-[11px] tracking-[0.15em] text-tape disabled:opacity-35"
+            className="btn-sangre mt-3 w-full"
           >
             VOLCAR LA TRIVIA
           </button>
         </Bloque>
 
         {/* Marcador */}
-        <Bloque titulo="Marcador de Almas">
+        <Bloque titulo="Marcador de Almas" personaje="/personajes/lapida.webp">
           {almas.length === 0 ? (
             <p className="text-[11px] text-muted">Todavía sin puntos.</p>
           ) : (
@@ -438,7 +451,7 @@ function Controles({
                   return "Marcador en cero.";
                 })
               }
-              className="w-full border border-tape-line py-2.5 text-[11px] tracking-[0.15em] text-muted hover:border-rec hover:text-rec disabled:opacity-35"
+              className="btn-riesgo w-full"
             >
               REINICIAR EL MARCADOR
             </button>
@@ -449,11 +462,40 @@ function Controles({
   );
 }
 
-function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/**
+ * Un panel de la cabina: chapa roja con el rótulo clavado en el borde de
+ * arriba y, cuando la dinámica tiene dueño en la landing, su monstruo asomado
+ * por la derecha. El mismo reparto de siempre, para que la cabina se sienta el
+ * revés de la misma función y no una herramienta aparte.
+ */
+function Bloque({
+  titulo,
+  personaje,
+  children,
+}: {
+  titulo: string;
+  personaje?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="tape-frame px-4 py-4">
-      <h2 className="text-[10px] tracking-[0.2em] text-bulb">{titulo.toUpperCase()}</h2>
-      <div className="mt-3">{children}</div>
+    <section className="panel relative overflow-hidden px-4 pb-4">
+      {personaje && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-4 bottom-0 h-[82%] w-24 opacity-[0.16]"
+          style={{ maskImage: "linear-gradient(90deg, transparent, #000 60%)" }}
+        >
+          <Image
+            src={personaje}
+            alt=""
+            fill
+            sizes="96px"
+            className="object-contain object-bottom"
+          />
+        </div>
+      )}
+      <span className="rotulo">{titulo}</span>
+      <div className="relative mt-3">{children}</div>
     </section>
   );
 }

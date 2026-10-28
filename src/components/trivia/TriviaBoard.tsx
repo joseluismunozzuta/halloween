@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { getQuestion, type GameState, type TriviaQuestion, type TriviaScore } from "@/lib/trivia";
+import type { Inscrito } from "@/lib/trivia-sala";
 
 // Carousel de evidencia fotográfica de la pregunta (daisyUI): avanza solo
 // cada 1.5 s y al llegar a la última vuelve a la primera (loop infinito).
@@ -49,12 +51,19 @@ function QuestionCarousel({ urls }: { urls: string[] }) {
   );
 }
 
-/** Etiqueta de estado, con la voz del visor de la cámara. */
-function Rotulo({ children, tone = "bulb" }: { children: React.ReactNode; tone?: "bulb" | "rec" }) {
+/**
+ * Etiqueta de estado: el cartel clavado sobre la atracción.
+ *
+ * Rojo por defecto, que es el color de la carpa. El ámbar queda para lo que
+ * está corriendo ahora mismo —el cronómetro—, así que no se gasta en rótulos.
+ */
+function Rotulo({ children, tone = "rec" }: { children: React.ReactNode; tone?: "bulb" | "rec" }) {
   return (
     <span
-      className={`border px-4 py-1.5 text-sm tracking-[0.25em] ${
-        tone === "rec" ? "border-rec text-rec" : "border-bulb text-bulb"
+      className={`border px-5 py-2 text-sm tracking-[0.25em] ${
+        tone === "rec"
+          ? "border-rec bg-rec/10 text-rec shadow-[0_0_28px_-10px_var(--rec-red)]"
+          : "border-bulb bg-bulb/10 text-bulb"
       }`}
     >
       {children}
@@ -64,7 +73,15 @@ function Rotulo({ children, tone = "bulb" }: { children: React.ReactNode; tone?:
 
 // Tablero de la trivia para la TV: la pregunta y las alternativas se leen acá,
 // mientras los celulares solo muestran los botones de color.
-export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaScore[] }) {
+export function TriviaBoard({
+  game,
+  scores,
+  sala,
+}: {
+  game: GameState;
+  scores: TriviaScore[];
+  sala: Inscrito[];
+}) {
   const [question, setQuestion] = useState<TriviaQuestion | null>(null);
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
 
@@ -83,31 +100,55 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     };
   }, [game.currentQuestionId]);
 
+  // El podio es el mismo cementerio que cierra la landing: una lápida por
+  // persona, más alta cuantos más puntos. Repetir el idioma en vez de inventar
+  // otro es lo que hace que la televisión y el celular se sientan la misma
+  // noche y no dos productos.
   if (game.status === "finished") {
     const [first, second, third] = scores;
+    const podio = [
+      { s: second, puesto: 2, alto: 300 },
+      { s: first, puesto: 1, alto: 400 },
+      { s: third, puesto: 3, alto: 240 },
+    ];
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-10 py-12">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 py-8">
         <Rotulo>FIN DE LA FUNCIÓN</Rotulo>
-        <div className="flex w-full max-w-3xl items-end justify-center gap-6">
-          {[second, first, third].map((s, i) => {
-            if (!s) return null;
-            const place = i === 1 ? 1 : i === 0 ? 2 : 3;
-            const height = place === 1 ? "h-48" : place === 2 ? "h-36" : "h-28";
-            return (
-              <div key={s.id} className="flex flex-1 flex-col items-center gap-3">
-                <Avatar photoURL={s.photoURL} name={s.name} size={place === 1 ? 88 : 64} />
-                <p className="max-w-full truncate text-center text-xl text-bone">{s.name}</p>
-                <div
-                  className={`${height} flex w-full flex-col items-center justify-center border border-tape-line bg-tape-deep`}
-                >
-                  <span className="font-cartel text-5xl text-bulb">{place}</span>
-                  <span className="mt-2 text-lg tabular-nums text-bone">{s.totalPoints}</span>
+
+        <ol className="flex w-full max-w-4xl items-end justify-center gap-10">
+          {podio.map(({ s, puesto, alto }) =>
+            s ? (
+              <li key={s.id} className="flex w-[26%] flex-col items-center">
+                <Avatar photoURL={s.photoURL} name={s.name} size={puesto === 1 ? 72 : 56} />
+                <span className="mt-3 font-cartel text-2xl tabular-nums text-bulb">
+                  {s.totalPoints}
+                </span>
+                <div className="relative mt-2 w-full" style={{ height: alto }}>
+                  <Image
+                    src="/personajes/lapida.webp"
+                    alt=""
+                    fill
+                    sizes="260px"
+                    className="object-contain object-bottom"
+                  />
+                  {/* Grabado en la piedra: texto oscuro sobre la lápida, no
+                      encima de ella. */}
+                  <div className="absolute inset-x-0 top-[30%] flex flex-col items-center px-4">
+                    <span className="font-cartel text-4xl leading-none text-[#2b2b30]">
+                      {puesto}
+                    </span>
+                    <span className="mt-2 max-w-full truncate text-base text-[#2b2b30]">
+                      {s.name.split(" ")[0]}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              </li>
+            ) : null
+          )}
+        </ol>
+
+        <p className="text-sm tracking-[0.3em] text-muted">SEIS ENTRAN · UNO GANA</p>
       </div>
     );
   }
@@ -116,9 +157,9 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     const correct = optionStyle(game.lastResult.correctIndex);
     const totalAnswers = game.lastResult.counts.reduce((a, b) => a + b, 0);
     return (
-      <div className="flex flex-1 flex-col gap-8 py-8">
+      <div className="flex flex-1 flex-col gap-8 py-6">
         <div className="text-center">
-          <p className="text-sm tracking-[0.3em] text-muted">RESPUESTA CORRECTA</p>
+          <p className="text-sm tracking-[0.3em] text-rec">RESPUESTA CORRECTA</p>
           <p className={`mt-4 text-7xl ${correct.text}`}>{correct.shape}</p>
           {question && (
             <p className="mt-4 text-3xl text-bone">
@@ -144,9 +185,9 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
           })}
         </div>
 
-        <div className="mx-auto w-full max-w-2xl">
-          <p className="text-center text-xs tracking-[0.3em] text-muted">MARCADOR DE ALMAS</p>
-          <ul className="mt-4 divide-y divide-tape-line">
+        <div className="panel mx-auto w-full max-w-2xl px-6 pb-4">
+          <span className="rotulo">Marcador de almas</span>
+          <ul className="mt-2 divide-y divide-blood-line">
             {scores.slice(0, 5).map((s, i) => (
               <li key={s.id} className="flex items-center gap-4 py-3">
                 <span className="w-8 font-cartel text-2xl text-bulb">{i + 1}</span>
@@ -165,14 +206,18 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
   if (game.status === "question" && question) {
     const timeUp = remaining !== null && remaining <= 0;
     return (
-      <div className="flex flex-1 flex-col gap-5 py-8">
-        <div className="flex items-center justify-between gap-6">
-          <p className="text-sm tracking-[0.3em] text-muted">
+      <div className="flex flex-1 flex-col gap-5 py-6">
+        <div className="flex items-center justify-between gap-6 border-b border-blood-line pb-3">
+          <p className="text-sm tracking-[0.3em] text-rec">
             PREGUNTA {game.currentIndex + 1} / {game.totalQuestions}
           </p>
+          {/* El cronómetro es lo único ámbar de la pantalla: es lo que está
+              corriendo. En los últimos cinco segundos se pone rojo y late. */}
           <span
             className={`font-cartel text-7xl leading-none tabular-nums ${
-              timeUp ? "text-rec" : "text-bulb"
+              timeUp || (remaining !== null && remaining <= 5)
+                ? "rec-dot text-rec"
+                : "text-bulb"
             }`}
           >
             {remaining ?? "--"}
@@ -203,10 +248,37 @@ export function TriviaBoard({ game, scores }: { game: GameState; scores: TriviaS
     );
   }
 
+  // Antes de empezar, la TV es la lista de inscritos: entrar a /trivia en el
+  // celular te pone acá, y es la única señal que tiene el grupo de que su
+  // teléfono quedó conectado de verdad.
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-8">
       <Rotulo>LA FUNCIÓN ESTÁ POR EMPEZAR</Rotulo>
-      <p className="text-lg text-muted">Los seis ya pueden entrar desde su celular.</p>
+
+      {sala.length === 0 ? (
+        <p className="text-lg text-muted">
+          Entra desde tu celular en <span className="text-bone">/trivia</span> y
+          aparecerás acá.
+        </p>
+      ) : (
+        <>
+          <ul className="flex max-w-5xl flex-wrap justify-center gap-10">
+            {sala.map((i) => (
+              <li key={i.uid} className="flex w-32 flex-col items-center gap-3">
+                <Avatar photoURL={i.photoURL} name={i.name} size={88} />
+                <span className="w-full truncate text-center text-xl text-bone">
+                  {i.name.split(" ")[0]}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-lg text-muted">
+            {sala.length === 1
+              ? "1 en la sala · faltan los demás"
+              : `${sala.length} en la sala`}
+          </p>
+        </>
+      )}
     </div>
   );
 }
