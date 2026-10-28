@@ -113,10 +113,34 @@ Cada dinámica aporta al mismo Marcador de Almas, y la trivia vuelca su
 
 Los números viven en [`src/lib/almas.ts`](src/lib/almas.ts).
 
+## Qué se puede usar y cuándo
+
+El enlace se comparte antes del 31, así que cada sección se abre a su hora. Lo
+que decide eso vive en [`src/lib/atracciones.ts`](src/lib/atracciones.ts), junto
+con el texto de la ficha que explica cada dinámica:
+
+| Se usa desde ya | Se abre el 31 |
+|---|---|
+| Menú, mentiras (escribirlas), película | Disfraces, trivia, misiones, supervivencia, marcador |
+
+Las de la noche se desbloquean solas a las 7:00 pm del 31, y además el
+anfitrión puede adelantar cualquiera desde `/admin/noche` abriendo esa
+dinámica. Mientras siguen cerradas se ven detrás de un precinto, borrosas y sin
+poder tocarse, pero su ficha sí se puede leer.
+
+> **Antes de compartir el enlace**, revisa que en `/admin/noche` la dinámica
+> abierta esté en **Ninguna**. Si queda una abierta de una prueba, esa sección
+> aparece desbloqueada para todos.
+
+Esto es para que nadie toque algo a destiempo, no es seguridad: lo que protege
+los votos y las claves son las reglas de Firestore.
+
 ## Editar el contenido
 
 - Fecha, lugar e invitados: [`src/lib/event-config.ts`](src/lib/event-config.ts)
 - Bloques de la noche: [`src/lib/agenda.ts`](src/lib/agenda.ts)
 - Parejas: [`src/lib/identidad.ts`](src/lib/identidad.ts)
 - Banco de la trivia: [`src/lib/trivia-bank.ts`](src/lib/trivia-bank.ts)
+- Fichas («de qué va») y cuándo se abre cada sección:
+  [`src/lib/atracciones.ts`](src/lib/atracciones.ts)
 - Personajes: `public/personajes/` (los originales, en `src/img/`)

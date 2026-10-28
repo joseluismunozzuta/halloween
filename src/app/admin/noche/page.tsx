@@ -39,6 +39,7 @@ const ACTIVIDADES: { id: Actividad; nombre: string }[] = [
   { id: "disfraces", nombre: "Disfraces" },
   { id: "mentiras", nombre: "Mentiras" },
   { id: "supervivencia", nombre: "Supervivencia" },
+  { id: "trivia", nombre: "Trivia" },
   { id: "misiones", nombre: "Revelar misiones" },
 ];
 

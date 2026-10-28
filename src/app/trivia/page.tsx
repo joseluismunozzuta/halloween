@@ -15,6 +15,8 @@ import {
   type TriviaScore,
 } from "@/lib/trivia";
 import { entrarALaSala, suscribirSala, type Inscrito } from "@/lib/trivia-sala";
+import { buscarFicha } from "@/lib/atracciones";
+import { useApertura } from "@/lib/apertura";
 import { optionStyle } from "@/components/trivia/options";
 import { useQuestionTimer } from "@/components/trivia/useQuestionTimer";
 import { Avatar } from "@/components/Avatar";
@@ -43,6 +45,9 @@ export default function TriviaPage() {
 
   const jugador = user && !user.isAnonymous ? user : user === undefined ? undefined : null;
   const enLaSala = jugador ? sala.some((i) => i.uid === jugador.uid) : false;
+  // Hasta que el anfitrión abra la trivia, entrar acá no te inscribe en nada:
+  // si no, la sala se llenaría días antes con gente que solo vino a curiosear.
+  const abierta = useApertura(buscarFicha("trivia"));
   const remaining = useQuestionTimer(game.questionStartedAt, game.deadlineSeconds);
 
   // Solo cuenta si corresponde a la pregunta que está en pantalla.
@@ -64,7 +69,7 @@ export default function TriviaPage() {
   const intentosSala = useRef(0);
 
   useEffect(() => {
-    if (!jugador || enLaSala) return;
+    if (!jugador || enLaSala || !abierta) return;
     if (intentosSala.current >= 5) return;
     intentosSala.current += 1;
     const timeoutId = setTimeout(() => {
@@ -78,7 +83,7 @@ export default function TriviaPage() {
         });
     }, 0);
     return () => clearTimeout(timeoutId);
-  }, [jugador, enLaSala]);
+  }, [jugador, enLaSala, abierta]);
 
   // Recupera la respuesta ya enviada (por si recargó el celular a mitad de la
   // pregunta). Todo diferido para no llamar setState dentro del efecto.
@@ -269,11 +274,15 @@ export default function TriviaPage() {
   } else {
     body = (
       <div className="tape-frame px-6 py-10 text-center">
-        <p className="text-[11px] tracking-[0.25em] text-bulb">SALA DE ESPERA</p>
+        <p className="text-[11px] tracking-[0.25em] text-bulb">
+          {abierta ? "SALA DE ESPERA" : "TODAVÍA NO"}
+        </p>
         <p className="mt-5 text-[12px] leading-[1.7] text-muted">
-          {enLaSala
-            ? "Ya estás dentro. Deja esta pantalla abierta: arranca sola."
-            : "La trivia todavía no empieza. Deja esta pantalla abierta: arranca sola."}
+          {!abierta
+            ? "La trivia se abre a las 10:00 pm del 31. Vuelve entonces: no tienes que hacer nada hasta ese momento."
+            : enLaSala
+              ? "Ya estás dentro. Deja esta pantalla abierta: arranca sola."
+              : "La trivia todavía no empieza. Deja esta pantalla abierta: arranca sola."}
         </p>
 
         {sala.length > 0 && (

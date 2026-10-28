@@ -1,8 +1,20 @@
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
-/** Las dinámicas que el anfitrión puede abrir desde la cabina. */
-export type Actividad = "mentiras" | "misiones" | "disfraces" | "supervivencia" | null;
+/**
+ * Las dinámicas que el anfitrión puede abrir desde la cabina.
+ *
+ * Abrir una hace dos cosas: decide qué sale en la televisión y levanta el
+ * precinto de esa sección en los celulares, para que nadie use una dinámica
+ * antes de que toque. Es una sola a la vez, igual que en la noche real.
+ */
+export type Actividad =
+  | "mentiras"
+  | "misiones"
+  | "disfraces"
+  | "supervivencia"
+  | "trivia"
+  | null;
 
 /**
  * Resultado publicado de una ronda de mentiras.

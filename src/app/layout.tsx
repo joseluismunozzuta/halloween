@@ -3,6 +3,7 @@ import { Alfa_Slab_One, Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
 import { EVENT_NAME } from "@/lib/event-config";
 import { SesionProvider } from "@/lib/sesion";
+import { AperturaProvider } from "@/lib/apertura";
 
 // Dos familias, ninguna más. El slab es la voz del cartel de circo; la mono es
 // la voz del visor de la cámara, y se usa también para los textos de lectura:
@@ -46,7 +47,9 @@ export default function RootLayout({
       className={`${alfaSlab.variable} ${shareMono.variable} antialiased`}
     >
       <body className="bg-tape text-bone">
-        <SesionProvider>{children}</SesionProvider>
+        <SesionProvider>
+          <AperturaProvider>{children}</AperturaProvider>
+        </SesionProvider>
       </body>
     </html>
   );

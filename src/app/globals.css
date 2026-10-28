@@ -410,6 +410,96 @@ body {
   }
 }
 
+/* ───────────────────── Precinto y ficha ─────────────────────
+   Lo que sella una atracción que todavía no toca, y el cartel que explica de
+   qué va cada una. */
+
+/* El contenido sellado: se ve, no se usa. Poco desenfoque a propósito —el
+   radio es lo que cuesta caro en un celular— con el color apagado encima, que
+   es lo que de verdad lo manda al fondo. */
+.sellado {
+  filter: blur(3px) grayscale(0.55) brightness(0.55);
+  opacity: 0.55;
+  user-select: none;
+}
+
+/* Las cintas cruzadas del precinto. */
+.cinta {
+  position: absolute;
+  left: -12%;
+  width: 124%;
+  padding: 0.3rem 0;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--rec-red) 0 18px,
+    #0b0b0e 18px 36px
+  );
+  color: var(--bone);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.72;
+  box-shadow: 0 6px 24px -8px rgba(0, 0, 0, 0.9);
+}
+
+.cinta-a {
+  top: 30%;
+  transform: rotate(-11deg);
+}
+
+.cinta-b {
+  top: 62%;
+  transform: rotate(7deg);
+}
+
+/* La ficha: hoja que sube desde el borde de abajo. */
+.ficha {
+  width: 100%;
+  max-width: 520px;
+  margin: auto auto 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--bone);
+  overflow: visible;
+}
+
+.ficha::backdrop {
+  background: rgba(3, 3, 5, 0.82);
+}
+
+.ficha-hoja {
+  max-height: 86svh;
+  overflow-y: auto;
+  border: 1px solid var(--blood-line);
+  border-bottom: none;
+  background:
+    linear-gradient(180deg, rgba(255, 31, 61, 0.09), transparent 36%),
+    var(--blood-surface);
+  box-shadow: 0 -18px 50px -12px rgba(0, 0, 0, 0.95);
+  animation: ficha-sube 0.26s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+/* El tirador de la hoja, como el de cualquier panel que sube. */
+.ficha-hoja::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  background: var(--blood-line);
+}
+
+@keyframes ficha-sube {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+
 /* El punto rojo de REC. */
 .rec-dot {
   animation: rec-blink 1.3s steps(1, end) infinite;
@@ -797,6 +887,10 @@ body {
   .timbra,
   .fantasma,
   .acecha {
+    animation: none;
+  }
+
+  .ficha-hoja {
     animation: none;
   }
 
