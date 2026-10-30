@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsc src/lib/trivia-cierre.ts src/lib/trivia-cierre.test.ts --outDir .tmp-test --module commonjs --moduleResolution node --target es2022 --esModuleInterop --skipLibCheck && node .tmp-test/trivia-cierre.test.js"
+    "test": "tsc src/lib/trivia-cierre.ts src/lib/trivia-cierre.test.ts src/lib/mentiras-turnos.ts src/lib/mentiras-turnos.test.ts --outDir .tmp-test --module commonjs --moduleResolution node --target es2022 --esModuleInterop --skipLibCheck && node .tmp-test/trivia-cierre.test.js && node .tmp-test/mentiras-turnos.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

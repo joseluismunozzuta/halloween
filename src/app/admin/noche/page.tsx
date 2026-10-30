@@ -16,7 +16,13 @@ import {
   type Actividad,
   type EstadoNoche,
 } from "@/lib/party";
-import { cerrarRondaMentiras, suscribirFichasListas } from "@/lib/mentiras";
+import {
+  cerrarRondaMentiras,
+  suscribirFichasListas,
+  suscribirRondasCerradas,
+  volcarMentiras,
+} from "@/lib/mentiras";
+import { siguienteTurno } from "@/lib/mentiras-turnos";
 import { cerrarVotacionDisfraces } from "@/lib/disfraces";
 import {
   marcarCumplida,
@@ -94,6 +100,7 @@ function Controles({
 }) {
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [listas, setListas] = useState<PersonaId[]>([]);
+  const [cerradas, setCerradas] = useState<PersonaId[]>([]);
   const [misiones, setMisiones] = useState<MisionAsignada[]>([]);
   const [almas, setAlmas] = useState<Alma[]>([]);
   const [triviaScores, setTriviaScores] = useState<TriviaScore[]>([]);
@@ -103,6 +110,7 @@ function Controles({
 
   useEffect(() => suscribirNoche(setNoche, () => {}), []);
   useEffect(() => suscribirFichasListas(setListas, () => {}), []);
+  useEffect(() => suscribirRondasCerradas(setCerradas, () => {}), []);
   useEffect(() => suscribirMisiones(setMisiones, () => {}), []);
   useEffect(() => suscribirAlmas(setAlmas, () => {}), []);
   useEffect(() => subscribeScores(setTriviaScores), []);
@@ -121,6 +129,18 @@ function Controles({
   }
 
   const personaPorUid = new Map(identidades.map((i) => [i.uid, i.persona]));
+
+  // Estado de las mentiras, que es la única dinámica que va por turnos.
+  const enMentiras = noche.actividadAbierta === "mentiras";
+  const reveladaLaActual =
+    noche.resultadoMentiras?.ronda != null &&
+    noche.resultadoMentiras.ronda === noche.rondaMentiras;
+  const proximoTurno = siguienteTurno({
+    orden: TODAS_LAS_PERSONAS,
+    conFrases: listas,
+    cerradas,
+    actual: (noche.rondaMentiras as PersonaId | null) ?? null,
+  });
 
   return (
     <main className="scanlines relative min-h-[100svh] px-5 py-7">
@@ -194,9 +214,90 @@ function Controles({
 
         {/* Mentiras */}
         <Bloque titulo="Dos verdades y una mentira" personaje="/personajes/ghostface.webp">
-          <p className="text-[10px] text-muted">
-            {listas.length} de {TODAS_LAS_PERSONAS.length} dejaron sus frases.
+          <p className="text-[10px] leading-[1.5] text-muted">
+            {listas.length} de {TODAS_LAS_PERSONAS.length} dejaron sus frases
+            {cerradas.length > 0 && ` · ${cerradas.length} rondas ya pasaron`}.
           </p>
+
+          {!enMentiras ? (
+            <>
+              <button
+                type="button"
+                disabled={ocupado || !proximoTurno}
+                onClick={() =>
+                  correr("iniciar las mentiras", async () => {
+                    await actualizarNoche({
+                      actividadAbierta: "mentiras",
+                      rondaMentiras: proximoTurno,
+                      resultadoMentiras: null,
+                    });
+                    return `En pantalla: ${NOMBRES[proximoTurno as PersonaId]}.`;
+                  })
+                }
+                className="btn-sangre mt-3 w-full"
+              >
+                INICIAR LA RONDA
+              </button>
+              {listas.length < TODAS_LAS_PERSONAS.length && (
+                <p className="mt-2 text-[10px] leading-[1.5] text-rec">
+                  Ojo: todavía faltan frases. Quien no las dejó se salta solo, y al
+                  empezar ya no podrá escribirlas.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-3 border border-blood-line px-3 py-2.5 text-[11px] text-bone">
+                {noche.rondaMentiras ? (
+                  <>
+                    En pantalla: {NOMBRES[noche.rondaMentiras as PersonaId]}
+                    <span className="text-muted">
+                      {reveladaLaActual ? " · ya revelada" : " · votando"}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted">Ronda abierta, sin nadie en pantalla.</span>
+                )}
+              </p>
+
+              <button
+                type="button"
+                disabled={ocupado || !noche.rondaMentiras || reveladaLaActual}
+                onClick={() =>
+                  correr("revelar la mentira", async () => {
+                    const ronda = noche.rondaMentiras as PersonaId;
+                    const { acertaron } = await cerrarRondaMentiras(ronda);
+                    return `Revelada la de ${NOMBRES[ronda]}: ${acertaron.length} acertaron.`;
+                  })
+                }
+                className="btn-sangre mt-2 w-full"
+              >
+                REVELAR LA MENTIRA
+              </button>
+
+              <button
+                type="button"
+                disabled={ocupado || !proximoTurno}
+                onClick={() =>
+                  correr("pasar de turno", async () => {
+                    await actualizarNoche({
+                      rondaMentiras: proximoTurno,
+                      resultadoMentiras: null,
+                    });
+                    return `En pantalla: ${NOMBRES[proximoTurno as PersonaId]}.`;
+                  })
+                }
+                className="btn-hueso mt-2 w-full"
+              >
+                {proximoTurno
+                  ? `SIGUIENTE TURNO · ${NOMBRES[proximoTurno].toUpperCase()}`
+                  : "NO QUEDAN TURNOS"}
+              </button>
+            </>
+          )}
+
+          {/* El orden va solo, pero se puede saltar a cualquiera a mano: en una
+              noche real alguien sale al baño justo cuando le toca. */}
           <div className="mt-3 grid grid-cols-3 gap-2">
             {TODAS_LAS_PERSONAS.map((persona) => (
               <button
@@ -219,27 +320,29 @@ function Controles({
                     : "border-tape-line text-bone disabled:opacity-30"
                 }`}
               >
+                {cerradas.includes(persona) && noche.rondaMentiras !== persona && "✓ "}
                 {NOMBRES[persona]}
               </button>
             ))}
           </div>
+
           <button
             type="button"
-            disabled={ocupado || !noche.rondaMentiras}
+            disabled={ocupado || cerradas.length === 0}
             onClick={() =>
-              correr("cerrar ronda", async () => {
-                const ronda = noche.rondaMentiras as PersonaId;
-                const { acertaron } = await cerrarRondaMentiras(ronda);
-                return `Revelada la de ${NOMBRES[ronda]}: ${acertaron.length} acertaron.`;
+              correr("volcar mentiras", async () => {
+                const { rondas } = await volcarMentiras();
+                return `Volcadas ${rondas} rondas de mentiras al marcador.`;
               })
             }
-            className="btn-sangre mt-3 w-full"
+            className="btn-hueso mt-3 w-full"
           >
-            REVELAR LA MENTIRA
+            VOLCAR PUNTOS DE MENTIRAS
           </button>
           <p className="mt-2 text-[10px] leading-[1.5] text-muted">
-            Los puntos de esta dinámica se vuelcan todos juntos abajo, cuando hayan pasado
-            las seis rondas.
+            {PUNTOS.mentiraAcertada} por cazar la ajena y {PUNTOS.mentiraNoDescubierta} por
+            cada voto que no descubrió la tuya. Vuélcalo al final; repetirlo no duplica
+            nada.
           </p>
         </Bloque>
 

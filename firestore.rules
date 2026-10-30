@@ -201,7 +201,12 @@ service cloud.firestore {
     }
 
     match /mentiraVotos/{votoId} {
-      allow read: if isAdmin();
+      // Cada quien puede releer SU voto —el id lo lleva dentro—, para que
+      // recargar el celular no le borre de la pantalla lo que ya votó. Los de
+      // los demás siguen siendo solo del anfitrión: es voto secreto.
+      allow read: if isAdmin()
+        || (request.auth != null
+            && votoId == resource.data.ronda + '_' + request.auth.uid);
 
       allow create: if tengoIdentidad()
         && votoId == request.resource.data.ronda + '_' + request.auth.uid
@@ -214,6 +219,13 @@ service cloud.firestore {
         && request.resource.data.ronda != miIdentidad().persona;
 
       allow update, delete: if isAdmin();
+    }
+
+    // Lo que repartió cada ronda de mentiras, guardado al revelarla para que
+    // no viva en la memoria de la pestaña del anfitrión. Solo él: los puntos
+    // de una ronda dejan ver quién acertó, y eso es parte del voto secreto.
+    match /mentirasPuntos/{ronda} {
+      allow read, write: if isAdmin();
     }
 
     // ── Película de cierre ────────────────────────────────────────────────

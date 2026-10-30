@@ -9,6 +9,7 @@ import { NOMBRES, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
 import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
 import {
   guardarFicha,
+  miVotoDeLaRonda,
   suscribirFichas,
   suscribirFichasListas,
   votarMentira,
@@ -42,7 +43,9 @@ function Ficha_() {
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
-  const [voto, setVoto] = useState<number | null>(null);
+  // Atado a la ronda, no un numero suelto: con seis rondas seguidas, un voto
+  // sin dueno se queda pegado de la ronda anterior y bloquea la siguiente.
+  const [voto, setVoto] = useState<{ ronda: PersonaId; indice: number } | null>(null);
 
   const [listas, setListas] = useState<PersonaId[]>([]);
   const [fichas, setFichas] = useState<Ficha[]>([]);
@@ -58,7 +61,33 @@ function Ficha_() {
   const yaDeje = persona ? listas.includes(persona) : false;
   const faltan = TODAS_LAS_PERSONAS.filter((p) => !listas.includes(p));
   const rondaAbierta = noche.actividadAbierta === "mentiras";
-  const rondaDeOtro = noche.rondaMentiras && noche.rondaMentiras !== persona;
+  const ronda = (noche.rondaMentiras as PersonaId | null) ?? null;
+  const esMiTurno = Boolean(ronda && ronda === persona);
+  const puedoOpinar = Boolean(persona && ronda && !esMiTurno);
+  // Solo cuenta el voto si es de la ronda que esta en pantalla.
+  const miVoto = voto && ronda && voto.ronda === ronda ? voto.indice : null;
+  const resultado =
+    noche.resultadoMentiras && noche.resultadoMentiras.ronda === ronda
+      ? noche.resultadoMentiras
+      : null;
+  const acerte = resultado && miVoto !== null ? miVoto === resultado.indiceMentira : null;
+
+  // Al cambiar de turno, recupero de Firestore si ya voté esta ronda. Hace
+  // falta porque el voto vive solo en este celular: si alguien recarga a mitad
+  // de la ronda, sin esto la pantalla le ofrecería votar de nuevo y el intento
+  // chocaría contra la regla de un voto por ronda, sin explicación visible.
+  useEffect(() => {
+    if (!ronda || !puedoOpinar) return;
+    let cancelado = false;
+    const timeoutId = setTimeout(async () => {
+      const indice = await miVotoDeLaRonda(ronda).catch(() => null);
+      if (!cancelado && indice !== null) setVoto({ ronda, indice });
+    }, 0);
+    return () => {
+      cancelado = true;
+      clearTimeout(timeoutId);
+    };
+  }, [ronda, puedoOpinar]);
 
   // Al pasar a modo edición, precargo lo que ya estaba escrito.
   useEffect(() => {
@@ -197,45 +226,64 @@ function Ficha_() {
 
       {/* 2 · La votación */}
       <section data-reveal className="mt-7 shrink-0">
-        <h3 className="text-[10px] tracking-[0.2em] text-bulb">PARA VOTAR</h3>
+        <h3 className="text-[10px] tracking-[0.2em] text-bulb">
+          {ronda ? `TURNO DE ${NOMBRES[ronda].toUpperCase()}` : "PARA VOTAR"}
+        </h3>
+
         <p className="mt-2 text-[11px] leading-[1.6] text-muted">
-          {rondaAbierta ? (
-            <>
-              Las frases están <span className="text-bone">en la pantalla</span>. Acá solo
-              eliges el número.
-            </>
-          ) : (
+          {!rondaAbierta ? (
             <>
               Cuando estemos los seis, las frases salen en la pantalla y acá aparecen los
               números. El texto no se repite en el celular.
+            </>
+          ) : !ronda ? (
+            <>La ronda está por empezar. Mira la pantalla.</>
+          ) : esMiTurno ? (
+            <>
+              Te toca: tus tres frases están{" "}
+              <span className="text-bone">en la pantalla</span> y los demás están votando.
+              Tú no votas esta ronda.
+            </>
+          ) : resultado ? (
+            <>
+              La mentira era la{" "}
+              <span className="text-bone">{resultado.indiceMentira + 1}</span>.
+            </>
+          ) : miVoto !== null ? (
+            <>
+              Votaste la <span className="text-bone">{miVoto + 1}</span>. Mira la pantalla.
+            </>
+          ) : (
+            <>
+              Las frases están <span className="text-bone">en la pantalla</span>. Acá solo
+              eliges el número.
             </>
           )}
         </p>
 
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           {[0, 1, 2].map((i) => {
-            const esMio = voto === i;
-            const puedoVotar =
-              rondaAbierta && voto === null && !!noche.rondaMentiras && !!rondaDeOtro;
+            const esMio = miVoto === i;
+            const esLaMentira = resultado?.indiceMentira === i;
+            const puedoVotar = rondaAbierta && puedoOpinar && miVoto === null && !resultado;
             return (
               <button
                 key={i}
                 type="button"
                 disabled={!puedoVotar}
                 onClick={() => {
-                  setVoto(i);
-                  if (noche.rondaMentiras) {
-                    votarMentira(noche.rondaMentiras as PersonaId, i).catch(() =>
-                      setVoto(null)
-                    );
-                  }
+                  if (!ronda) return;
+                  setVoto({ ronda, indice: i });
+                  votarMentira(ronda, i).catch(() => setVoto(null));
                 }}
                 aria-label={`Votar que la frase ${i + 1} es la mentira`}
                 className={`flex aspect-square items-center justify-center border font-cartel text-4xl transition-all ${
-                  esMio
-                    ? "border-chroma-cyan bg-chroma-cyan text-tape"
-                    : "border-tape-line text-bone"
-                } ${voto !== null && !esMio ? "opacity-25" : ""} disabled:cursor-not-allowed disabled:opacity-30`}
+                  esLaMentira
+                    ? "border-rec bg-rec text-tape"
+                    : esMio
+                      ? "border-chroma-cyan bg-chroma-cyan text-tape"
+                      : "border-tape-line text-bone"
+                } ${miVoto !== null && !esMio && !esLaMentira ? "opacity-25" : ""} disabled:cursor-not-allowed disabled:opacity-30`}
               >
                 {i + 1}
               </button>
@@ -243,9 +291,9 @@ function Ficha_() {
           })}
         </div>
 
-        {rondaAbierta && !rondaDeOtro && noche.rondaMentiras && (
-          <p className="mt-2 text-[10px] text-muted">
-            Es tu turno: no puedes votar tu propia ficha.
+        {acerte !== null && (
+          <p className={`mt-2 text-[11px] ${acerte ? "text-bulb" : "text-rec"}`}>
+            {acerte ? "La cazaste." : "Te la creíste."}
           </p>
         )}
       </section>

@@ -32,7 +32,10 @@ export const TOPES: Record<Fuente, number> = {
   trivia: 1000,
   disfraces: 1200, // tres categorías de 400
   supervivencia: 600,
-  mentiras: 900,
+  // El máximo teórico, no lo esperable: cazar las cinco ajenas (5 × 200) y que
+  // ninguno de los cinco descubra la tuya (5 × 150). Que las dos cosas pasen
+  // juntas no va a ocurrir, pero el número es ese y conviene que no mienta.
+  mentiras: 1750,
   misiones: 500,
 };
 
