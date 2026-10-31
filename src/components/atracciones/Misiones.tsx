@@ -4,10 +4,16 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Attraction } from "@/components/tape/Attraction";
 import { PedirIdentidad } from "@/components/PedirIdentidad";
+import { Casete } from "@/components/tape/Casete";
 import { useSesion } from "@/lib/sesion";
 import { NOMBRES } from "@/lib/identidad";
 import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
-import { abrirMision, suscribirMisiones, type MisionAsignada } from "@/lib/misiones";
+import {
+  abrirMision,
+  cambiarMision,
+  suscribirMisiones,
+  type MisionAsignada,
+} from "@/lib/misiones";
 
 /**
  * Jigsaw entrega la misión. «Quiero jugar un juego» es, literalmente,
@@ -29,6 +35,7 @@ function Sobre() {
   const [misiones, setMisiones] = useState<MisionAsignada[]>([]);
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [abriendo, setAbriendo] = useState(false);
+  const [confirmandoCambio, setConfirmandoCambio] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => suscribirMisiones(setMisiones, () => {}), []);
@@ -48,6 +55,24 @@ function Sobre() {
         err instanceof Error && err.message === "banco-agotado"
           ? "No quedan misiones en el banco."
           : "No se pudo abrir el sobre."
+      );
+    } finally {
+      setAbriendo(false);
+    }
+  }
+
+  async function cambiar() {
+    if (!persona) return;
+    setAbriendo(true);
+    setError("");
+    try {
+      await cambiarMision(persona);
+      setConfirmandoCambio(false);
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "banco-agotado"
+          ? "Ya no quedan misiones libres: te quedas con la tuya."
+          : "No se pudo cambiar la misión."
       );
     } finally {
       setAbriendo(false);
@@ -84,28 +109,47 @@ function Sobre() {
               <PedirIdentidad accion="recibir tu misión" />
             </div>
           ) : mia ? (
-            <div className="tape-frame bg-tape/90 px-4 py-5">
-              <p className="text-[9px] tracking-[0.2em] text-rec">TU MISIÓN</p>
-              <p className="mt-3 text-[12px] leading-[1.6] text-bone">{mia.texto}</p>
-              <p className="mt-3 text-[10px] leading-[1.5] text-muted">
-                Cúmplela sin que te descubran.
-              </p>
-            </div>
+            <Casete estado="listo" nombre={mia.nombre} texto={mia.texto}>
+              {/* Cambiarla devuelve la tuya al banco y saca otra que nadie
+                  haya abierto. Se cierra cuando empieza la revelación: a esa
+                  altura cambiar de misión sería cambiar de examen. */}
+              {!revelacion &&
+                (confirmandoCambio ? (
+                  <div className="mt-4 border-t border-tape-line pt-3">
+                    <p className="text-[10px] leading-[1.5] text-muted">
+                      La cambias por otra al azar y esta vuelve al sobre de nadie. No se
+                      puede volver atrás.
+                    </p>
+                    <div className="mt-2.5 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={abriendo}
+                        onClick={cambiar}
+                        className="flex-1 border border-rec py-2 text-[10px] tracking-[0.15em] text-rec transition-colors hover:bg-rec hover:text-tape disabled:opacity-40"
+                      >
+                        {abriendo ? "CAMBIANDO…" : "SÍ, OTRA"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmandoCambio(false)}
+                        className="flex-1 border border-tape-line py-2 text-[10px] tracking-[0.15em] text-muted transition-colors hover:text-bone"
+                      >
+                        ME LA QUEDO
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmandoCambio(true)}
+                    className="mt-4 text-[10px] tracking-[0.15em] text-muted underline-offset-4 hover:text-rec hover:underline"
+                  >
+                    NO ME GUSTA, DAME OTRA
+                  </button>
+                ))}
+            </Casete>
           ) : (
-            <button
-              type="button"
-              onClick={abrir}
-              disabled={abriendo}
-              className="tape-frame w-full bg-tape/90 px-4 py-5 text-left transition-colors hover:border-rec disabled:opacity-50"
-            >
-              <p className="text-[9px] tracking-[0.2em] text-muted">SELLADO</p>
-              <p className="mt-3 font-cartel text-[17px] leading-tight uppercase text-bone">
-                Quiero jugar un juego
-              </p>
-              <p className="mt-3 text-[10px] tracking-[0.15em] text-rec">
-                {abriendo ? "ABRIENDO…" : "TOCAR PARA ABRIR ▸"}
-              </p>
-            </button>
+            <Casete estado={abriendo ? "girando" : "sellado"} onPlay={abrir} />
           )}
           {error && <p className="mt-2 text-[11px] text-rec">{error}</p>}
         </div>
@@ -118,7 +162,12 @@ function Sobre() {
             <ul className="mt-3 space-y-2">
               {misiones.map((m) => (
                 <li key={m.persona} className="border border-tape-line px-3 py-2">
-                  <p className="text-[10px] text-bulb">{NOMBRES[m.persona]}</p>
+                  <p className="flex items-baseline justify-between gap-2 text-[10px] text-bulb">
+                    {NOMBRES[m.persona]}
+                    <span className="font-cartel text-[11px] uppercase text-rec">
+                      {m.nombre}
+                    </span>
+                  </p>
                   <p className="mt-1 text-[11px] leading-[1.5] text-bone">{m.texto}</p>
                 </li>
               ))}

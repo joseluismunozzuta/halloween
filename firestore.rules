@@ -276,7 +276,7 @@ service cloud.firestore {
     // ── Misiones secretas ─────────────────────────────────────────────────
     match /bancoMisiones/{misionId} {
       allow read: if true;
-      // Solo se toca 'tomada' al asignar, desde la transacción del cliente.
+      // Solo se toca 'tomada', al asignar o al soltar una que se cambió.
       allow update: if signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tomada'])
         && request.resource.data.tomada is bool;
@@ -290,9 +290,18 @@ service cloud.firestore {
         || (tengoIdentidad() && miIdentidad().persona == persona);
 
       allow create: if tengoIdentidad() && miIdentidad().persona == persona
-        && request.resource.data.keys().hasOnly(['misionId', 'texto', 'abiertaEn']);
+        && request.resource.data.keys().hasOnly(['misionId', 'nombre', 'texto', 'abiertaEn']);
 
-      allow update, delete: if isAdmin();
+      // Cambiar la misión por otra: solo el dueño, solo antes de la
+      // revelación, y sin poder escribir 'cumplida' —eso lo marca el
+      // anfitrión cuando el grupo vota, y nadie se lo pone a sí mismo.
+      allow update: if isAdmin()
+        || (tengoIdentidad()
+            && miIdentidad().persona == persona
+            && !actividadAbierta('misiones')
+            && request.resource.data.keys().hasOnly(['misionId', 'nombre', 'texto', 'abiertaEn']));
+
+      allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────

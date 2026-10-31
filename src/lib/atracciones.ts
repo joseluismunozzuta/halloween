@@ -108,7 +108,8 @@ export const FICHAS: Ficha[] = [
     queEs:
       "Al llegar recibes una misión en un sobre sellado. Es algo pequeño que tienes que lograr durante la noche sin que te descubran.",
     queHaces: [
-      "Abre tu sobre al llegar. Se abre una sola vez y nadie más puede verlo.",
+      "Abre tu sobre al llegar. Nadie más puede verlo.",
+      "Si no te gusta la que te tocó, puedes cambiarla por otra que nadie haya abierto. Una vez cambiada, no hay vuelta atrás.",
       "Cúmplela cuando puedas, sin anunciarla.",
       "A la 1:30 se revelan todas y el grupo vota si la cumpliste.",
     ],
