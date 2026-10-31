@@ -315,7 +315,7 @@ export default function AdminTriviaPage() {
                         setStatus(`${i.name} salió de la sala.`);
                       })
                     }
-                    className="btn-riesgo px-2.5 py-1 text-[10px]"
+                    className="btn-riesgo sin-goteo px-2.5 py-1 text-[11px]"
                   >
                     Sacar
                   </button>

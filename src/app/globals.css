@@ -223,16 +223,20 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 31, 61, 0.22);
 }
 
-/* Rótulo de un panel: la etiqueta pegada al borde de arriba. */
+/* Rótulo de un panel: el cartelito pintado que cuelga del borde de arriba.
+   Va en la letra del cartel de circo, no en la mono: con 9px espaciados cada
+   panel parecía una etiqueta de archivo, y esto es una carpa, no un archivo. */
 .rotulo {
   display: inline-block;
   margin-top: -1px;
   border: 1px solid var(--blood-line);
   border-top: none;
-  background: var(--blood-edge);
-  padding: 0.3rem 0.7rem;
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  background: linear-gradient(180deg, var(--blood-edge), var(--blood-surface));
+  box-shadow: inset 0 -1px 0 rgba(255, 31, 61, 0.18);
+  padding: 0.4rem 0.8rem 0.45rem;
+  font-family: var(--font-alfa-slab), Georgia, serif;
+  font-size: 12px;
+  letter-spacing: 0.035em;
   line-height: 1;
   color: var(--bone);
   text-transform: uppercase;
@@ -246,42 +250,125 @@ body {
     0 0 22px -6px rgba(255, 140, 26, 0.55);
 }
 
-/* Botones. Tres pesos, y ninguno es un rectángulo gris:
-   sangre = la acción principal, hueso = secundaria, riesgo = destructiva. */
+/* Botones de la cabina: palancas, no celdas de formulario. Llevan la letra
+   del cartel y se hunden al pulsarlas, porque acá cada botón manda algo a una
+   televisión que están mirando seis personas y conviene que se sienta.
+
+   Tres pesos: sangre = la acción principal, hueso = secundaria, riesgo =
+   destructiva. */
 .btn-sangre,
 .btn-hueso,
 .btn-riesgo {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   border: 1px solid;
-  padding: 0.7rem 1.1rem;
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  /* El alto de arriba carga con el goteo; el resto es padding normal. */
+  padding: 1.15rem 1.2rem 0.8rem;
+  font-family: var(--font-alfa-slab), Georgia, serif;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
   text-transform: uppercase;
+  transform: translateY(0);
   transition:
     background-color 0.18s ease-out,
     color 0.18s ease-out,
     border-color 0.18s ease-out,
+    transform 0.08s ease-out,
     box-shadow 0.18s ease-out;
+}
+
+/* El goteo: gotas de distinto largo colgando del filo de arriba, más una
+   suelta que ya se desprendió. Son gotas gordas y pocas, no un fleco: un
+   borde serrado parece un adorno, y esto tiene que parecer que escurre.
+   Cada peso de botón pone su propio color en --goteo. */
+.btn-sangre::before,
+.btn-hueso::before,
+.btn-riesgo::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 22px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, var(--goteo) 0 3px, transparent 3px),
+    radial-gradient(5.5px 9px at 11% 2px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(4px 13px at 25% 2px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(6px 7px at 44% 2px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(4.5px 16px at 61% 2px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(3px 3px at 61% 20px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(6px 10px at 79% 2px, var(--goteo) 99%, transparent 100%),
+    radial-gradient(3.5px 6px at 93% 2px, var(--goteo) 99%, transparent 100%);
+  background-repeat: no-repeat;
+}
+
+/* Los botones chicos de una barra —los que van al lado de un título— no
+   gotean: a esa altura la gota se come la palabra. */
+.sin-goteo::before {
+  content: none;
+}
+
+.btn-sangre {
+  --goteo: var(--rec-red);
+}
+
+.btn-hueso {
+  --goteo: rgba(255, 31, 61, 0.3);
+}
+
+.btn-riesgo {
+  --goteo: rgba(232, 228, 217, 0.14);
+}
+
+.btn-riesgo:hover:not(:disabled) {
+  --goteo: rgba(255, 31, 61, 0.45);
+}
+
+.btn-hueso:hover:not(:disabled) {
+  --goteo: rgba(255, 31, 61, 0.62);
+}
+
+/* La palanca se hunde. El borde de abajo hace de canto del interruptor. */
+.btn-sangre:active:not(:disabled),
+.btn-hueso:active:not(:disabled),
+.btn-riesgo:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-sangre:active:not(:disabled),
+  .btn-hueso:active:not(:disabled),
+  .btn-riesgo:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .btn-sangre {
   border-color: var(--rec-red);
   background: linear-gradient(180deg, var(--blood), var(--blood-dark));
   color: var(--bone);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 140, 140, 0.22),
+    0 2px 0 var(--blood-dark);
 }
 
 .btn-sangre:hover:not(:disabled) {
   background: var(--rec-red);
-  box-shadow: 0 0 20px -4px rgba(255, 31, 61, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 220, 0.3),
+    0 2px 0 var(--blood-dark),
+    0 0 24px -4px rgba(255, 31, 61, 0.85);
 }
 
 .btn-hueso {
   border-color: var(--blood-line);
-  background: transparent;
+  background: linear-gradient(180deg, rgba(255, 31, 61, 0.06), transparent 60%);
   color: var(--bone);
+  box-shadow: inset 0 1px 0 rgba(255, 31, 61, 0.16);
 }
 
 .btn-hueso:hover:not(:disabled) {
@@ -303,6 +390,42 @@ body {
 .btn-sangre:disabled,
 .btn-hueso:disabled,
 .btn-riesgo:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Las fichas de elegir —una dinámica, una persona, un turno—. Son chapa roja
+   como el resto de la cabina, no cajitas grises de formulario, y la elegida se
+   enciende en ámbar: el mismo ámbar que significa «esto está al aire». */
+.chip-cabina {
+  border: 1px solid var(--blood-line);
+  background: var(--blood-surface);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-alfa-slab), Georgia, serif;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition:
+    background-color 0.18s ease-out,
+    color 0.18s ease-out,
+    border-color 0.18s ease-out;
+}
+
+.chip-cabina:hover:not(:disabled):not(.encendida) {
+  border-color: var(--rec-red);
+  color: var(--bone);
+}
+
+.chip-cabina.encendida {
+  border-color: var(--bulb-amber);
+  background: var(--bulb-amber);
+  color: var(--tape-black);
+  box-shadow: 0 0 20px -6px rgba(255, 140, 26, 0.7);
+}
+
+.chip-cabina:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }

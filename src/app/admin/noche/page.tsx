@@ -185,13 +185,13 @@ function Controles({
             <Link
               href="/proyeccion"
               target="_blank"
-              className="btn-hueso px-3 py-2 text-[10px]"
+              className="btn-hueso sin-goteo px-3 py-2 text-[11px]"
             >
               PROYECCIÓN ↗
             </Link>
             <Link
               href="/admin/trivia"
-              className="btn-riesgo px-3 py-2 text-[10px]"
+              className="btn-riesgo sin-goteo px-3 py-2 text-[11px]"
             >
               TRIVIA
             </Link>
@@ -204,7 +204,7 @@ function Controles({
 
         {/* Qué está abierto */}
         <Bloque titulo="Dinámica abierta">
-          <p className="text-[10px] leading-[1.5] text-muted">
+          <p className="text-[11px] leading-[1.6] text-muted">
             Esto es lo que decide qué sale en la TV y qué pueden escribir los celulares.
             Las fichas de mentiras dejan de ser privadas al abrir esa dinámica.
           </p>
@@ -220,10 +220,8 @@ function Controles({
                     return `Abierta: ${a.nombre}.`;
                   })
                 }
-                className={`border px-3 py-2 text-[10px] tracking-[0.1em] ${
-                  noche.actividadAbierta === a.id
-                    ? "border-bulb bg-bulb text-tape"
-                    : "border-tape-line text-muted hover:border-bulb hover:text-bulb"
+                className={`chip-cabina ${
+                  noche.actividadAbierta === a.id ? "encendida" : ""
                 }`}
               >
                 {a.nombre.toUpperCase()}
@@ -234,7 +232,7 @@ function Controles({
 
         {/* Mentiras */}
         <Bloque titulo="Dos mentiras y una verdad" personaje="/personajes/ghostface.webp">
-          <p className="text-[10px] leading-[1.5] text-muted">
+          <p className="text-[11px] leading-[1.6] text-muted">
             {listas.length} de {TODAS_LAS_PERSONAS.length} dejaron sus frases
             {cerradas.length > 0 && ` · ${cerradas.length} rondas ya pasaron`}.
           </p>
@@ -334,10 +332,8 @@ function Controles({
                     return `En pantalla: ${NOMBRES[persona]}.`;
                   })
                 }
-                className={`border px-2 py-2 text-[11px] ${
-                  noche.rondaMentiras === persona
-                    ? "border-bulb bg-bulb text-tape"
-                    : "border-tape-line text-bone disabled:opacity-30"
+                className={`chip-cabina ${
+                  noche.rondaMentiras === persona ? "encendida" : "text-bone"
                 }`}
               >
                 {cerradas.includes(persona) && noche.rondaMentiras !== persona && "✓ "}
@@ -359,7 +355,7 @@ function Controles({
           >
             VOLCAR PUNTOS DE MENTIRAS
           </button>
-          <p className="mt-2 text-[10px] leading-[1.5] text-muted">
+          <p className="mt-2 text-[11px] leading-[1.6] text-muted">
             {PUNTOS.verdadAcertada} por cazar la ajena y {PUNTOS.verdadNoDescubierta} por
             cada voto que no descubrió la tuya. Vuélcalo al final; repetirlo no duplica
             nada.
@@ -385,7 +381,7 @@ function Controles({
           >
             CERRAR CONCURSO Y REPARTIR PUNTOS
           </button>
-          <p className="mt-2 text-[10px] leading-[1.5] text-muted">
+          <p className="mt-2 text-[11px] leading-[1.6] text-muted">
             Cada quien puntúa del 1 al 10 a las dos parejas ajenas. El promedio se
             convierte en puntos a razón de {PUNTOS.disfrazPorPunto} por punto, para los
             dos de la pareja. Repetirlo no duplica nada.
@@ -394,7 +390,7 @@ function Controles({
 
         {/* Supervivencia */}
         <Bloque titulo="Plan de supervivencia" personaje="/personajes/leatherface.webp">
-          <p className="text-[10px] leading-[1.5] text-muted">
+          <p className="text-[11px] leading-[1.6] text-muted">
             {casos.length} de {TODAS_LAS_PERSONAS.length} abrieron su caso. Va por turnos:
             el caso sale en la televisión y los otros cinco lo puntúan del 1 al 10.
           </p>
@@ -480,10 +476,8 @@ function Controles({
                     return `En pantalla: ${NOMBRES[persona]}.`;
                   })
                 }
-                className={`border px-2 py-2 text-[11px] ${
-                  noche.rondaPlan === persona
-                    ? "border-bulb bg-bulb text-tape"
-                    : "border-tape-line text-bone disabled:opacity-30"
+                className={`chip-cabina ${
+                  noche.rondaPlan === persona ? "encendida" : "text-bone"
                 }`}
               >
                 {pasaron.includes(persona) && noche.rondaPlan !== persona && "✓ "}
@@ -508,7 +502,7 @@ function Controles({
           >
             CERRAR Y REPARTIR PUNTOS
           </button>
-          <p className="mt-2 text-[10px] leading-[1.5] text-muted">
+          <p className="mt-2 text-[11px] leading-[1.6] text-muted">
             El promedio del jurado por {PUNTOS.planPorPunto}. Repetirlo no duplica nada.
           </p>
         </Bloque>
@@ -542,10 +536,8 @@ function Controles({
                         return `${NOMBRES[m.persona]}: ${!m.cumplida ? "cumplida" : "sin cumplir"}.`;
                       })
                     }
-                    className={`h-6 w-6 shrink-0 border text-[11px] ${
-                      m.cumplida
-                        ? "border-bulb bg-bulb text-tape"
-                        : "border-tape-line text-muted"
+                    className={`chip-cabina h-7 w-7 shrink-0 p-0 ${
+                      m.cumplida ? "encendida" : ""
                     }`}
                   >
                     {m.cumplida ? "✓" : ""}
@@ -579,7 +571,7 @@ function Controles({
 
         {/* Trivia → almas */}
         <Bloque titulo="Trivia → Marcador de Almas">
-          <p className="text-[10px] leading-[1.5] text-muted">
+          <p className="text-[11px] leading-[1.6] text-muted">
             La trivia no vuelca sus puntos crudos: se convierte el puesto final a{" "}
             {PUNTOS_POR_PUESTO.join(" / ")}. Si no, decidiría sola la noche.
           </p>
@@ -626,7 +618,7 @@ function Controles({
         <Bloque titulo="Zona de riesgo">
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] leading-[1.5] text-muted">
+              <p className="text-[11px] leading-[1.6] text-muted">
                 Libera el nombre de alguien que se equivocó al elegir quién es.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -641,7 +633,7 @@ function Controles({
                         return `Liberado: ${NOMBRES[ident.persona]}.`;
                       })
                     }
-                    className="border border-tape-line px-3 py-1.5 text-[10px] text-muted hover:border-rec hover:text-rec"
+                    className="btn-riesgo sin-goteo px-3 py-1.5 text-[11px]"
                   >
                     {NOMBRES[ident.persona]} ✕
                   </button>
