@@ -233,7 +233,7 @@ function Controles({
         </Bloque>
 
         {/* Mentiras */}
-        <Bloque titulo="Dos verdades y una mentira" personaje="/personajes/ghostface.webp">
+        <Bloque titulo="Dos mentiras y una verdad" personaje="/personajes/ghostface.webp">
           <p className="text-[10px] leading-[1.5] text-muted">
             {listas.length} de {TODAS_LAS_PERSONAS.length} dejaron sus frases
             {cerradas.length > 0 && ` · ${cerradas.length} rondas ya pasaron`}.
@@ -284,7 +284,7 @@ function Controles({
                 type="button"
                 disabled={ocupado || !noche.rondaMentiras || reveladaLaActual}
                 onClick={() =>
-                  correr("revelar la mentira", async () => {
+                  correr("revelar la verdadera", async () => {
                     const ronda = noche.rondaMentiras as PersonaId;
                     const { acertaron } = await cerrarRondaMentiras(ronda);
                     return `Revelada la de ${NOMBRES[ronda]}: ${acertaron.length} acertaron.`;
@@ -292,7 +292,7 @@ function Controles({
                 }
                 className="btn-sangre mt-2 w-full"
               >
-                REVELAR LA MENTIRA
+                REVELAR LA VERDADERA
               </button>
 
               <button
@@ -360,7 +360,7 @@ function Controles({
             VOLCAR PUNTOS DE MENTIRAS
           </button>
           <p className="mt-2 text-[10px] leading-[1.5] text-muted">
-            {PUNTOS.mentiraAcertada} por cazar la ajena y {PUNTOS.mentiraNoDescubierta} por
+            {PUNTOS.verdadAcertada} por cazar la ajena y {PUNTOS.verdadNoDescubierta} por
             cada voto que no descubrió la tuya. Vuélcalo al final; repetirlo no duplica
             nada.
           </p>

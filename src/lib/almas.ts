@@ -55,10 +55,10 @@ export const PUNTOS = {
    * tope de la fuente.
    */
   planPorPunto: 60,
-  /** Por adivinar la mentira de otro. */
-  mentiraAcertada: 200,
-  /** Por cada persona que NO adivinó la tuya. */
-  mentiraNoDescubierta: 150,
+  /** Por dar con la frase verdadera de otro. */
+  verdadAcertada: 200,
+  /** Por cada voto que NO dio con la tuya. */
+  verdadNoDescubierta: 150,
   /** Si el grupo confirma que cumpliste tu misión. */
   misionCumplida: 500,
 } as const;

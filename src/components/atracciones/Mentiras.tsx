@@ -19,16 +19,22 @@ import {
 /**
  * Ghostface: la voz al teléfono que miente.
  *
+ * Se busca la VERDAD, no la mentira. Dar con dos cosas raras que te hayan
+ * pasado de verdad es trabajo de memoria, y no todo el mundo tiene material;
+ * inventarlas lo puede hacer cualquiera. Así cada uno necesita una sola
+ * anécdota buena, y encima puede camuflarla escribiendo dos falsas que se le
+ * parezcan.
+ *
  * Funciona como la trivia, en dos tiempos:
- *  1. **Antes del 31**, cada uno deja sus tres frases —dos verdades y una
- *     mentira— con opción a corregir mientras la ronda no se abra.
+ *  1. **Antes del 31**, cada uno deja sus tres frases —dos inventadas y una
+ *     cierta— con opción a corregir mientras la ronda no se abra.
  *  2. **El 31**, las frases salen EN LA PANTALLA y el celular solo manda el
  *     número. Por eso acá no se repite el texto: leerlo en dos sitios parte la
  *     atención del grupo.
  */
 export function Mentiras() {
   return (
-    <Attraction id="mentiras" number={5} title="Dos verdades y una mentira">
+    <Attraction id="mentiras" number={5} title="Dos mentiras y una verdad">
       {() => <Ficha_ />}
     </Attraction>
   );
@@ -39,7 +45,7 @@ const VACIAS: [string, string, string] = ["", "", ""];
 function Ficha_() {
   const { persona } = useSesion();
   const [frases, setFrases] = useState<[string, string, string]>(VACIAS);
-  const [cualMiente, setCualMiente] = useState<number | null>(null);
+  const [cualEsCierta, setCualEsCierta] = useState<number | null>(null);
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +76,7 @@ function Ficha_() {
     noche.resultadoMentiras && noche.resultadoMentiras.ronda === ronda
       ? noche.resultadoMentiras
       : null;
-  const acerte = resultado && miVoto !== null ? miVoto === resultado.indiceMentira : null;
+  const acerte = resultado && miVoto !== null ? miVoto === resultado.indiceVerdad : null;
 
   // Al cambiar de turno, recupero de Firestore si ya voté esta ronda. Hace
   // falta porque el voto vive solo en este celular: si alguien recarga a mitad
@@ -96,7 +102,7 @@ function Ficha_() {
     return () => clearTimeout(timeoutId);
   }, [editando, miFicha]);
 
-  const completa = frases.every((f) => f.trim().length > 2) && cualMiente !== null;
+  const completa = frases.every((f) => f.trim().length > 2) && cualEsCierta !== null;
   const mostrandoFormulario = !yaDeje || editando;
 
   async function enviar(e: React.FormEvent) {
@@ -105,7 +111,7 @@ function Ficha_() {
     setGuardando(true);
     setError("");
     try {
-      await guardarFicha(persona, frases, cualMiente!);
+      await guardarFicha(persona, frases, cualEsCierta!);
       setEditando(false);
     } catch {
       setError("No se pudo guardar. Intenta de nuevo.");
@@ -135,9 +141,9 @@ function Ficha_() {
           />
         </div>
         <p className="pb-2 text-[11.5px] leading-[1.7] text-muted">
-          Tres cosas raras que te pasaron.
+          Tres cosas raras. Dos las inventaste.
           <br />
-          <span className="text-bone">Una es mentira.</span>
+          <span className="text-bone">Una te pasó de verdad.</span>
         </p>
       </div>
 
@@ -160,11 +166,11 @@ function Ficha_() {
               <div key={i} className="flex items-start gap-2">
                 <button
                   type="button"
-                  onClick={() => setCualMiente(cualMiente === i ? null : i)}
-                  aria-pressed={cualMiente === i}
-                  aria-label={`Marcar la frase ${i + 1} como la mentira`}
+                  onClick={() => setCualEsCierta(cualEsCierta === i ? null : i)}
+                  aria-pressed={cualEsCierta === i}
+                  aria-label={`Marcar la frase ${i + 1} como la verdadera`}
                   className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border font-cartel text-sm transition-colors ${
-                    cualMiente === i
+                    cualEsCierta === i
                       ? "border-rec bg-rec text-tape"
                       : "border-tape-line text-muted hover:border-rec hover:text-rec"
                   }`}
@@ -187,8 +193,9 @@ function Ficha_() {
             ))}
 
             <p className="pt-1 text-[10px] leading-[1.5] text-muted">
-              Toca el número de la que sea <span className="text-rec">mentira</span>. Solo
-              tú lo sabes: se guarda aparte y ni siquiera se puede leer desde acá.
+              Toca el número de la que sea <span className="text-bulb">cierta</span>.
+              Solo tú lo sabes: se guarda aparte y ni siquiera se puede leer desde acá.
+              Que la verdadera suene tan increíble como las que inventaste.
             </p>
 
             <button
@@ -208,7 +215,7 @@ function Ficha_() {
             <button
               type="button"
               onClick={() => {
-                setCualMiente(null);
+                setCualEsCierta(null);
                 setEditando(true);
               }}
               className="mt-3 text-[10px] tracking-[0.15em] text-muted underline-offset-4 hover:text-bulb hover:underline"
@@ -246,8 +253,8 @@ function Ficha_() {
             </>
           ) : resultado ? (
             <>
-              La mentira era la{" "}
-              <span className="text-bone">{resultado.indiceMentira + 1}</span>.
+              La verdadera era la{" "}
+              <span className="text-bone">{resultado.indiceVerdad + 1}</span>.
             </>
           ) : miVoto !== null ? (
             <>
@@ -264,7 +271,7 @@ function Ficha_() {
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           {[0, 1, 2].map((i) => {
             const esMio = miVoto === i;
-            const esLaMentira = resultado?.indiceMentira === i;
+            const esLaMentira = resultado?.indiceVerdad === i;
             const puedoVotar = rondaAbierta && puedoOpinar && miVoto === null && !resultado;
             return (
               <button
@@ -276,7 +283,7 @@ function Ficha_() {
                   setVoto({ ronda, indice: i });
                   votarMentira(ronda, i).catch(() => setVoto(null));
                 }}
-                aria-label={`Votar que la frase ${i + 1} es la mentira`}
+                aria-label={`Votar que la frase ${i + 1} es la verdadera`}
                 className={`flex aspect-square items-center justify-center border font-cartel text-4xl transition-all ${
                   esLaMentira
                     ? "border-rec bg-rec text-tape"
@@ -293,7 +300,7 @@ function Ficha_() {
 
         {acerte !== null && (
           <p className={`mt-2 text-[11px] ${acerte ? "text-bulb" : "text-rec"}`}>
-            {acerte ? "La cazaste." : "Te la creíste."}
+            {acerte ? "La cazaste." : "Te vendió una inventada."}
           </p>
         )}
       </section>

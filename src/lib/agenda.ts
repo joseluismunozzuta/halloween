@@ -41,8 +41,8 @@ export const AGENDA: AgendaBlock[] = [
     id: "mentiras",
     startsAt: h(21, 30),
     label: "9:30 pm",
-    title: "Dos verdades y una mentira",
-    detail: "Tres cosas raras que te pasaron. Una es falsa. Que adivinen.",
+    title: "Dos mentiras y una verdad",
+    detail: "Tres cosas raras. Dos las inventaste. Que adivinen cuál pasó.",
     href: "#mentiras",
   },
   {

@@ -6,7 +6,7 @@ import { NOMBRES, type PersonaId } from "@/lib/identidad";
 export type FaseMentiras = "frases" | "resultado";
 
 /**
- * Las dos verdades y una mentira, en la TV.
+ * Las dos mentiras y una verdad, en la TV.
  *
  * Esta vista es la única del sitio pensada para pantalla grande y horizontal:
  * el texto vive acá y los celulares solo mandan el número, así que las frases
@@ -16,14 +16,14 @@ export function MentirasBoard({
   autor,
   frases,
   fase = "frases",
-  indiceMentira,
+  indiceVerdad,
   votos,
 }: {
   autor: PersonaId;
   frases: readonly [string, string, string];
   fase?: FaseMentiras;
   /** Solo en "resultado". */
-  indiceMentira?: number;
+  indiceVerdad?: number;
   /** Cuántos votaron cada frase. Solo en "resultado". */
   votos?: readonly [number, number, number];
 }) {
@@ -56,13 +56,13 @@ export function MentirasBoard({
 
         <ol className="mt-8 flex flex-1 flex-col justify-center gap-6">
           {frases.map((frase, i) => {
-            const esMentira = fase === "resultado" && indiceMentira === i;
+            const esLaVerdadera = fase === "resultado" && indiceVerdad === i;
             return (
               <li key={i} className="flex items-start gap-6">
                 <span
                   className={`flex h-16 w-16 shrink-0 items-center justify-center border-2 font-cartel text-3xl ${
-                    esMentira
-                      ? "border-rec bg-rec text-tape"
+                    esLaVerdadera
+                      ? "border-bulb bg-bulb text-tape"
                       : "border-tape-line text-bulb"
                   }`}
                 >
@@ -70,7 +70,7 @@ export function MentirasBoard({
                 </span>
                 <p
                   className={`min-w-0 flex-1 text-[clamp(1.25rem,2.4vw,2.1rem)] leading-snug ${
-                    fase === "resultado" && !esMentira ? "text-muted" : "text-bone"
+                    fase === "resultado" && !esLaVerdadera ? "text-muted" : "text-bone"
                   }`}
                 >
                   {frase}
@@ -88,7 +88,7 @@ export function MentirasBoard({
         <p className="mt-8 text-lg tracking-[0.25em] text-muted">
           {fase === "frases"
             ? "ELIGE EL NÚMERO DESDE TU CELULAR"
-            : `LA MENTIRA ERA LA ${(indiceMentira ?? 0) + 1}`}
+            : `LA VERDADERA ERA LA ${(indiceVerdad ?? 0) + 1}`}
         </p>
       </div>
     </div>

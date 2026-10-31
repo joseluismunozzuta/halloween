@@ -121,7 +121,7 @@ export default function ProyeccionPage() {
               autor={ficha.autor}
               frases={ficha.frases}
               fase={resultado ? "resultado" : "frases"}
-              indiceMentira={resultado?.indiceMentira}
+              indiceVerdad={resultado?.indiceVerdad}
               votos={resultado?.votos}
             />
           ) : (

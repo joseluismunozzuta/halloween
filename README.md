@@ -110,7 +110,7 @@ Cada dinámica aporta al mismo Marcador de Almas, y la trivia vuelca su
 | Trivia | 1000 / 800 / 600 / 400 / 300 / 200 según el puesto |
 | Disfraces | El promedio de las notas (1–10) × 120, a los dos de la pareja |
 | Supervivencia | El promedio del jurado (1–10) × 60 |
-| Mentiras | 200 por acertar la ajena, 150 por cada quien que no descubra la tuya |
+| Mentiras | 200 por dar con la verdad ajena, 150 por cada voto que no dio con la tuya |
 | Misiones | 500 si el grupo da la tuya por cumplida |
 
 Los números viven en [`src/lib/almas.ts`](src/lib/almas.ts).

@@ -159,10 +159,10 @@ service cloud.firestore {
       allow create, update: if tengoIdentidad()
         && miIdentidad().persona == persona
         && !actividadAbierta('mentiras')
-        && request.resource.data.indiceMentira is int
-        && request.resource.data.indiceMentira >= 0
-        && request.resource.data.indiceMentira < 3
-        && request.resource.data.keys().hasOnly(['indiceMentira']);
+        && request.resource.data.indiceVerdad is int
+        && request.resource.data.indiceVerdad >= 0
+        && request.resource.data.indiceVerdad < 3
+        && request.resource.data.keys().hasOnly(['indiceVerdad']);
 
       allow delete: if isAdmin();
     }

@@ -54,7 +54,7 @@ export function suscribirFichas(
 export async function guardarFicha(
   persona: PersonaId,
   frases: [string, string, string],
-  indiceMentira: number
+  indiceVerdad: number
 ) {
   if (!auth.currentUser) throw new Error("sin-sesion");
   await Promise.all([
@@ -62,7 +62,7 @@ export async function guardarFicha(
       frases: frases.map((f) => f.trim()),
       actualizadoEn: serverTimestamp(),
     }),
-    setDoc(doc(db, "fichaClaves", persona), { indiceMentira }),
+    setDoc(doc(db, "fichaClaves", persona), { indiceVerdad }),
     // Marcador vacío y público: solo dice que ya la dejaste.
     setDoc(doc(db, "fichasListas", persona), {}),
   ]);
@@ -110,13 +110,13 @@ export async function miVotoDeLaRonda(ronda: PersonaId): Promise<number | null> 
  * acumule y los vuelque al Marcador de Almas de una sola vez.
  */
 export async function cerrarRondaMentiras(ronda: PersonaId): Promise<{
-  indiceMentira: number;
+  indiceVerdad: number;
   votos: [number, number, number];
   acertaron: PersonaId[];
 }> {
   const clave = await getDoc(doc(db, "fichaClaves", ronda));
   if (!clave.exists()) throw new Error("sin-clave");
-  const indiceMentira = clave.data().indiceMentira as number;
+  const indiceVerdad = clave.data().indiceVerdad as number;
 
   const votosSnap = await getDocs(
     query(collection(db, "mentiraVotos"), where("ronda", "==", ronda))
@@ -134,7 +134,7 @@ export async function cerrarRondaMentiras(ronda: PersonaId): Promise<{
     // El id es `${ronda}_${uid}`; la ronda puede llevar guion bajo, el uid no.
     const uid = d.id.slice(ronda.length + 1);
     const quien = personaPorUid.get(uid);
-    if (quien && indice === indiceMentira) acertaron.push(quien);
+    if (quien && indice === indiceVerdad) acertaron.push(quien);
   }
 
   // Los puntos de la ronda se guardan en el momento de revelarla, no se
@@ -144,23 +144,23 @@ export async function cerrarRondaMentiras(ronda: PersonaId): Promise<{
   const fallaron = votosSnap.size - acertaron.length;
   const puntos: PuntosRonda = {};
   for (const quien of acertaron) {
-    puntos[quien] = (puntos[quien] ?? 0) + PUNTOS.mentiraAcertada;
+    puntos[quien] = (puntos[quien] ?? 0) + PUNTOS.verdadAcertada;
   }
   // El autor cobra por cada voto que no la descubrió. Se cuentan votos y no
   // personas: quien no votó no le regala puntos a nadie.
   if (fallaron > 0) {
-    puntos[ronda] = (puntos[ronda] ?? 0) + fallaron * PUNTOS.mentiraNoDescubierta;
+    puntos[ronda] = (puntos[ronda] ?? 0) + fallaron * PUNTOS.verdadNoDescubierta;
   }
 
   await setDoc(doc(db, "mentirasPuntos", ronda), { puntos });
 
   await setDoc(
     doc(db, "party", "live"),
-    { resultadoMentiras: { ronda, indiceMentira, votos } },
+    { resultadoMentiras: { ronda, indiceVerdad, votos } },
     { merge: true }
   );
 
-  return { indiceMentira, votos, acertaron };
+  return { indiceVerdad, votos, acertaron };
 }
 
 /** Lo que repartió una ronda ya revelada. */

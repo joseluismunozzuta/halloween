@@ -120,19 +120,19 @@ export const FICHAS: Ficha[] = [
   },
   {
     id: "mentiras",
-    titulo: "Dos verdades y una mentira",
+    titulo: "Dos mentiras y una verdad",
     cuando: "antes",
     actividad: "mentiras",
     cuandoTexto: "Escribes ahora · se juega a las 9:30 pm",
     queEs:
-      "Cada uno escribe tres experiencias raras propias: dos que pasaron de verdad y una inventada. En la noche el resto adivina cuál es la falsa.",
+      "Cada uno escribe tres experiencias raras: dos inventadas y una que le pasó de verdad. En la noche el resto tiene que adivinar cuál es la cierta.",
     queHaces: [
-      "Escribe tus tres frases desde ya y marca cuál es la mentira.",
+      "Escribe tus tres frases desde ya y marca cuál es la verdadera. Que la cierta suene tan increíble como las que inventaste.",
       "Nadie las ve hasta que llegue tu turno esa noche: ni el resto, ni el anfitrión.",
-      "En la noche votas la mentira de los demás desde tu celular.",
+      "En la noche votas cuál crees que es la verdad de cada uno, desde tu celular.",
     ],
     paraQue:
-      "Reemplaza al clásico «cuenten historias de terror», donde siempre hay alguien que se queda sin material. Con anécdotas propias nadie se queda callado.",
+      "Hace falta una sola anécdota buena en vez de dos, que es lo que deja a alguien sin material. Y como las otras dos las inventas tú, puedes camuflarla para que no cante.",
   },
   {
     id: "marcador",

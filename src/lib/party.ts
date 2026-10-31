@@ -26,7 +26,7 @@ export type Actividad =
  */
 export type ResultadoMentiras = {
   ronda: string;
-  indiceMentira: number;
+  indiceVerdad: number;
   votos: [number, number, number];
 };
 
