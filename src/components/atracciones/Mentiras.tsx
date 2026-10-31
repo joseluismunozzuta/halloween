@@ -28,7 +28,7 @@ import {
  */
 export function Mentiras() {
   return (
-    <Attraction id="mentiras" number={6} title="Dos verdades y una mentira">
+    <Attraction id="mentiras" number={5} title="Dos verdades y una mentira">
       {() => <Ficha_ />}
     </Attraction>
   );

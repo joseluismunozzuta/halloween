@@ -22,12 +22,28 @@ export const AGENDA: AgendaBlock[] = [
     href: "#misiones",
   },
   {
+    id: "supervivencia",
+    startsAt: h(20),
+    label: "8:00 pm",
+    title: "Plan de supervivencia",
+    detail: "Tu caso sale en la tele y tienes dos minutos para defender tu plan.",
+    href: "#supervivencia",
+  },
+  {
     id: "cena",
     startsAt: h(21),
     label: "9:00 pm",
-    title: "Cena",
-    detail: "Se come, y mientras tanto se vota el concurso de disfraces.",
+    title: "Cena y disfraces",
+    detail: "Se come, y mientras tanto cada uno puntúa a las otras dos parejas.",
     href: "#disfraces",
+  },
+  {
+    id: "mentiras",
+    startsAt: h(21, 30),
+    label: "9:30 pm",
+    title: "Dos verdades y una mentira",
+    detail: "Tres cosas raras que te pasaron. Una es falsa. Que adivinen.",
+    href: "#mentiras",
   },
   {
     id: "trivia",
@@ -38,37 +54,24 @@ export const AGENDA: AgendaBlock[] = [
     href: "#trivia",
   },
   {
-    id: "supervivencia",
+    id: "impostor",
     startsAt: h(23),
     label: "11:00 pm",
-    title: "Plan de supervivencia",
-    detail: "Tres villanos, dos minutos para explicar cómo los vencerías.",
-  },
-  {
-    id: "mentiras",
-    startsAt: h(24),
-    label: "12:00 am",
-    title: "Dos verdades y una mentira",
-    detail: "Tres cosas raras que te pasaron. Una es falsa. Que adivinen.",
-  },
-  {
-    id: "impostor",
-    startsAt: h(25),
-    label: "1:00 am",
     title: "Impostor",
     detail: "Sin celulares. Este se juega en la mesa.",
   },
   {
     id: "premiacion",
-    startsAt: h(25, 30),
-    label: "1:30 am",
+    startsAt: h(24),
+    label: "12:00 am",
     title: "Revelación y premiación",
     detail: "Se revelan las misiones secretas y se cierra el Marcador de Almas.",
+    href: "#marcador",
   },
   {
     id: "pelicula",
-    startsAt: h(26),
-    label: "2:00 am",
+    startsAt: h(24, 30),
+    label: "12:30 am",
     title: "Película de cierre",
     detail: "La que ganó la votación.",
     href: "#pelicula",
@@ -122,7 +125,7 @@ function limaMinutes(now: Date): number | null {
   if (year !== 2026) return null;
   if (month === 10 && day === 31) return hour * 60 + minute;
   // La madrugada del 1 de noviembre sigue siendo la misma noche: se le suman
-  // 24 h para que siga el orden de AGENDA, que pasa de las 12 a la 1:30.
+  // 24 h para que siga el orden de AGENDA, que cruza la medianoche.
   if (month === 11 && day === 1 && hour < 6) return 24 * 60 + hour * 60 + minute;
   return null;
 }

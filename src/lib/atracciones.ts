@@ -87,16 +87,16 @@ export const FICHAS: Ficha[] = [
   {
     id: "misiones",
     titulo: "Tu misión secreta",
-    cuando: "noche",
+    cuando: "antes",
     actividad: "misiones",
-    cuandoTexto: "7:00 pm · al llegar",
+    cuandoTexto: "Ábrela ahora · se revelan a medianoche",
     queEs:
       "Al llegar recibes una misión en un sobre sellado. Es algo pequeño que tienes que lograr durante la noche sin que te descubran.",
     queHaces: [
-      "Abre tu sobre al llegar. Nadie más puede verlo.",
+      "Abre tu casete desde ya. Nadie más puede verlo.",
       "Si no te gusta la que te tocó, puedes cambiarla por otra que nadie haya abierto. Una vez cambiada, no hay vuelta atrás.",
       "Cúmplela cuando puedas, sin anunciarla.",
-      "A la 1:30 se revelan todas y el grupo vota si la cumpliste.",
+      "A medianoche se revelan todas y el grupo vota si la cumpliste.",
     ],
     paraQue:
       "Para que durante toda la noche estés tramando algo por debajo de la conversación, y para que al final haya algo que contar.",
@@ -106,7 +106,7 @@ export const FICHAS: Ficha[] = [
     titulo: "¿Sobrevivirías a una película de terror?",
     cuando: "antes",
     actividad: "supervivencia",
-    cuandoTexto: "Abre tu caso ahora · se juega a las 11:00 pm",
+    cuandoTexto: "Abre tu caso ahora · se juega a las 8:00 pm",
     queEs:
       "A cada uno le toca un caso distinto: un asesino, un sitio, cuatro objetos y unas reglas. En la noche tienes dos minutos para explicar cómo sales vivo, y los otros cinco hacen de jurado.",
     queHaces: [
@@ -123,7 +123,7 @@ export const FICHAS: Ficha[] = [
     titulo: "Dos verdades y una mentira",
     cuando: "antes",
     actividad: "mentiras",
-    cuandoTexto: "Escribes ahora · se juega a las 12:00 am",
+    cuandoTexto: "Escribes ahora · se juega a las 9:30 pm",
     queEs:
       "Cada uno escribe tres experiencias raras propias: dos que pasaron de verdad y una inventada. En la noche el resto adivina cuál es la falsa.",
     queHaces: [

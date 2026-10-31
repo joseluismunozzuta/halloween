@@ -9,20 +9,22 @@ import { Marcador } from "@/components/atracciones/Marcador";
 import { Pelicula } from "@/components/atracciones/Pelicula";
 
 /**
- * El recorrido del circo, carpa por carpa. El orden sigue el de la noche: lo
- * que se usa antes del 31 va primero, después las dinámicas en el orden en que
- * ocurren, y el marcador al final porque es el cierre.
+ * El recorrido del circo, carpa por carpa.
+ *
+ * El orden es el de la noche, de principio a fin: lo primero que abres al
+ * llegar arriba del todo y lo último que pasa abajo. Así, a cualquier hora,
+ * lo que te toca está más o menos donde te quedaste la vez anterior.
  */
 export default function Home() {
   return (
     <div className="mx-auto w-full max-w-[520px]">
       <Portada />
       <Agenda />
-      <Disfraces />
-      <Trivia />
       <Misiones />
       <Supervivencia />
+      <Disfraces />
       <Mentiras />
+      <Trivia />
       <Marcador />
       <Pelicula />
     </div>

@@ -123,7 +123,7 @@ con el texto de la ficha que explica cada dinámica:
 
 | Se usa desde ya | Se abre el 31 |
 |---|---|
-| Mentiras (escribirlas), supervivencia (abrir tu caso), película | Disfraces, trivia, misiones, marcador |
+| Misiones, supervivencia (abrir tu caso), mentiras (escribirlas), película | Disfraces, trivia, marcador |
 
 Las de la noche se desbloquean solas a las 7:00 pm del 31, y además el
 anfitrión puede adelantar cualquiera desde `/admin/noche` abriendo esa

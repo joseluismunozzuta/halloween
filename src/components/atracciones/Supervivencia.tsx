@@ -25,7 +25,7 @@ import { NOTAS } from "@/lib/disfraces";
  */
 export function Supervivencia() {
   return (
-    <Attraction id="supervivencia" number={5} title="Plan de supervivencia">
+    <Attraction id="supervivencia" number={3} title="Plan de supervivencia">
       {() => (
         <>
           <div className="relative mt-4 h-[26svh] min-h-[150px] shrink-0 overflow-hidden">

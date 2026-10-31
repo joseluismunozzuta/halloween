@@ -11,7 +11,7 @@ import { Attraction } from "@/components/tape/Attraction";
  */
 export function Trivia() {
   return (
-    <Attraction id="trivia" number={3} title="Trivia de terror">
+    <Attraction id="trivia" number={6} title="Trivia de terror">
       {() => (
         <>
           {/* Alto propio, no flex-1: el bloque de texto de abajo es alto y con
