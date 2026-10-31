@@ -41,8 +41,11 @@ tajo.
 | `/proyeccion` | Tablero de la TV | Pantalla grande |
 | `/admin` | Cabina de proyección (solo el anfitrión) | Cualquiera |
 
-`/proyeccion` acepta `?modo=mentiras` y `&fase=resultado` mientras el backend
-no decida el modo solo.
+`/proyeccion` no lleva parámetros: mira `party/live` y muestra sola la
+dinámica que el anfitrión tenga abierta —el caso de supervivencia de quien
+presenta, las frases de quien está en su turno de mentiras— y, cuando no hay
+ninguna, el tablero de la trivia. Se abre una vez en la TV y se deja ahí toda
+la noche.
 
 ## Quién es quién
 
