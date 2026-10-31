@@ -267,7 +267,7 @@ body {
   gap: 0.5rem;
   border: 1px solid;
   /* El alto de arriba carga con el goteo; el resto es padding normal. */
-  padding: 1.15rem 1.2rem 0.8rem;
+  padding: 1.45rem 1.2rem 0.85rem;
   font-family: var(--font-alfa-slab), Georgia, serif;
   font-size: 12.5px;
   letter-spacing: 0.04em;
@@ -292,17 +292,45 @@ body {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 22px;
+  height: 24px;
   pointer-events: none;
+  /* Cada gota son dos capas: la columna que baja del filo y el bulbo redondo
+     del final. Con una sola elipse larga salen puntas, y una fila de puntas
+     es una dentadura, no sangre. */
   background-image:
     linear-gradient(180deg, var(--goteo) 0 3px, transparent 3px),
-    radial-gradient(5.5px 9px at 11% 2px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(4px 13px at 25% 2px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(6px 7px at 44% 2px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(4.5px 16px at 61% 2px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(3px 3px at 61% 20px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(6px 10px at 79% 2px, var(--goteo) 99%, transparent 100%),
-    radial-gradient(3.5px 6px at 93% 2px, var(--goteo) 99%, transparent 100%);
+    linear-gradient(var(--goteo), var(--goteo)),
+    radial-gradient(circle 3.5px at 12% 11px, var(--goteo) 99%, transparent 100%),
+    linear-gradient(var(--goteo), var(--goteo)),
+    radial-gradient(circle 3px at 38% 15px, var(--goteo) 99%, transparent 100%),
+    linear-gradient(var(--goteo), var(--goteo)),
+    radial-gradient(circle 4px at 66% 8px, var(--goteo) 99%, transparent 100%),
+    linear-gradient(var(--goteo), var(--goteo)),
+    radial-gradient(circle 3px at 88% 13px, var(--goteo) 99%, transparent 100%),
+    /* una que ya se soltó y va cayendo */
+    radial-gradient(circle 2px at 38% 21px, var(--goteo) 99%, transparent 100%);
+  background-size:
+    100% 24px,
+    7px 11px,
+    100% 24px,
+    6px 15px,
+    100% 24px,
+    8px 8px,
+    100% 24px,
+    6px 13px,
+    100% 24px,
+    100% 24px;
+  background-position:
+    0 0,
+    12% 0,
+    0 0,
+    38% 0,
+    0 0,
+    66% 0,
+    0 0,
+    88% 0,
+    0 0,
+    0 0;
   background-repeat: no-repeat;
 }
 
