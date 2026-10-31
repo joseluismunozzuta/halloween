@@ -106,7 +106,7 @@ Cada dinámica aporta al mismo Marcador de Almas, y la trivia vuelca su
 | Dinámica | Aporta |
 |---|---|
 | Trivia | 1000 / 800 / 600 / 400 / 300 / 200 según el puesto |
-| Disfraces | 400 por categoría ganada, a los dos de la pareja |
+| Disfraces | El promedio de las notas (1–10) × 120, a los dos de la pareja |
 | Supervivencia | 600 al mejor plan |
 | Mentiras | 200 por acertar la ajena, 150 por cada quien que no descubra la tuya |
 | Misiones | 500 si el grupo da la tuya por cumplida |

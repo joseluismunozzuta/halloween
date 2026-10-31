@@ -8,13 +8,14 @@ import { seededRandom } from "@/lib/seeded-random";
 import { PAREJAS, parejaDe } from "@/lib/identidad";
 import { useSesion } from "@/lib/sesion";
 import {
-  CATEGORIAS,
+  misNotas,
+  NOTAS,
+  puntuarDisfraz,
   subirDisfraz,
   suscribirDisfraces,
-  votarDisfraz,
-  type CategoriaId,
   type Disfraz,
 } from "@/lib/disfraces";
+import type { ParejaId } from "@/lib/identidad";
 
 export function Disfraces() {
   return (
@@ -31,12 +32,27 @@ function Escenario({ open }: { open: boolean }) {
   const { persona } = useSesion();
   const miPareja = persona ? parejaDe(persona).id : null;
   const [disfraces, setDisfraces] = useState<Disfraz[]>([]);
-  const [votos, setVotos] = useState<Partial<Record<CategoriaId, string>>>({});
+  const [notas, setNotas] = useState<Partial<Record<ParejaId, number>>>({});
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState("");
   const entrada = useRef<HTMLInputElement>(null);
 
   useEffect(() => suscribirDisfraces(setDisfraces, () => {}), []);
+
+  // Mis notas ya puestas, por si recargó el celular a mitad del concurso.
+  useEffect(() => {
+    if (!persona) return;
+    let cancelado = false;
+    const timeoutId = setTimeout(async () => {
+      const puestas = await misNotas().catch(() => []);
+      if (cancelado || puestas.length === 0) return;
+      setNotas(Object.fromEntries(puestas.map((n) => [n.parejaId, n.nota])));
+    }, 0);
+    return () => {
+      cancelado = true;
+      clearTimeout(timeoutId);
+    };
+  }, [persona]);
 
   // Con semilla fija: servidor y cliente calculan la misma salpicadura.
   const { gotas, chorros } = useMemo(() => {
@@ -285,44 +301,69 @@ function Escenario({ open }: { open: boolean }) {
         {errorFoto && <p className="mt-2 text-[11px] text-rec">{errorFoto}</p>}
 
         {persona ? (
-          <div className="mt-4 space-y-3">
-            {CATEGORIAS.map((categoria) => (
-              <div key={categoria.id}>
-                <p className="text-[10px] tracking-[0.15em] text-chroma-cyan">
-                  {categoria.nombre.toUpperCase()}
-                </p>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  {PAREJAS.filter((p) => p.id !== miPareja).map((pareja) => {
-                    const esMi = votos[categoria.id] === pareja.id;
-                    return (
-                      <button
-                        key={pareja.id}
-                        type="button"
-                        onClick={() => {
-                          setVotos((v) => ({ ...v, [categoria.id]: pareja.id }));
-                          votarDisfraz(categoria.id, pareja.id).catch(() => {});
-                        }}
-                        aria-pressed={esMi}
-                        className={`border px-2 py-2 text-[11px] transition-colors ${
-                          esMi
-                            ? "border-chroma-cyan bg-chroma-cyan/10 text-chroma-cyan"
-                            : "border-tape-line text-bone hover:border-chroma-cyan"
-                        }`}
-                      >
-                        {pareja.nombre}
-                      </button>
-                    );
-                  })}
+          <div className="mt-4 space-y-4">
+            <p className="text-[11px] leading-[1.6] text-muted">
+              Ponle una nota del <span className="text-bone">1 al 10</span> a las otras dos
+              parejas. La tuya no se puntúa.
+            </p>
+
+            {PAREJAS.filter((p) => p.id !== miPareja).map((pareja) => {
+              const mia = notas[pareja.id];
+              return (
+                <div key={pareja.id}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-[10px] tracking-[0.15em] text-chroma-cyan">
+                      {pareja.nombre.toUpperCase()}
+                    </p>
+                    <span className="font-cartel text-lg leading-none text-bone">
+                      {mia ?? "–"}
+                    </span>
+                  </div>
+
+                  {/* Diez casillas en dos filas: a 375 px una sola fila deja
+                      celdas de 30 px, por debajo de lo que un pulgar acierta. */}
+                  <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                    {NOTAS.map((nota) => {
+                      const elegida = mia === nota;
+                      return (
+                        <button
+                          key={nota}
+                          type="button"
+                          onClick={() => {
+                            const previa = mia ?? null;
+                            setNotas((n) => ({ ...n, [pareja.id]: nota }));
+                            puntuarDisfraz(pareja.id, nota).catch(() =>
+                              // Si la escritura falla, la nota vuelve a lo que
+                              // había: mostrar una que no se guardó es peor que
+                              // no mostrar ninguna.
+                              setNotas((n) => ({ ...n, [pareja.id]: previa ?? undefined }))
+                            );
+                          }}
+                          aria-pressed={elegida}
+                          aria-label={`Ponerle ${nota} a ${pareja.nombre}`}
+                          className={`flex aspect-square items-center justify-center border text-[12px] transition-colors ${
+                            elegida
+                              ? "border-chroma-cyan bg-chroma-cyan text-tape"
+                              : "border-tape-line text-bone hover:border-chroma-cyan"
+                          }`}
+                        >
+                          {nota}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
             <p className="text-[10px] leading-[1.5] text-muted">
-              Nadie ve los votos hasta que JL cierre la votación.
+              Puedes cambiar la nota hasta que JL cierre el concurso. Nadie ve las notas
+              de nadie hasta entonces.
             </p>
           </div>
         ) : (
           <div className="mt-4">
-            <PedirIdentidad accion="subir tu foto y votar" />
+            <PedirIdentidad accion="subir tu foto y puntuar" />
           </div>
         )}
       </div>

@@ -143,16 +143,25 @@ service cloud.firestore {
 
     // Voto SECRETO: solo el anfitrión los lee. Si el votante pudiera leerlos,
     // el concurso dejaría de tener gracia a los diez segundos.
+    // Una nota del 1 al 10 por pareja ajena. El id es {uid}_{pareja}, así que
+    // cada quien tiene un solo voto por pareja y puede corregirlo hasta que el
+    // anfitrión cierre: cambiar de opinión viendo los disfraces es parte del
+    // juego, y sin `update` el cambio fallaría en silencio.
     match /disfrazVotos/{votoId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin()
+        || (request.auth != null
+            && votoId == request.auth.uid + '_' + resource.data.parejaId);
 
-      allow create: if tengoIdentidad()
-        && votoId == request.auth.uid + '_' + request.resource.data.categoria
-        && request.resource.data.keys().hasOnly(['categoria', 'parejaId'])
-        // Nadie vota a su propia pareja.
+      allow create, update: if tengoIdentidad()
+        && votoId == request.auth.uid + '_' + request.resource.data.parejaId
+        && request.resource.data.keys().hasOnly(['parejaId', 'nota'])
+        && request.resource.data.nota is int
+        && request.resource.data.nota >= 1
+        && request.resource.data.nota <= 10
+        // Nadie puntúa a su propia pareja.
         && request.resource.data.parejaId != miIdentidad().parejaId;
 
-      allow update, delete: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ── Dos verdades y una mentira ────────────────────────────────────────
@@ -226,6 +235,20 @@ service cloud.firestore {
     // de una ronda dejan ver quién acertó, y eso es parte del voto secreto.
     match /mentirasPuntos/{ronda} {
       allow read, write: if isAdmin();
+    }
+
+    // Voto al mejor plan de supervivencia. Uno por persona, nunca el propio,
+    // y secreto hasta que el anfitrión cierra: cada quien lee solo el suyo.
+    match /planVotos/{uid} {
+      allow read: if isAdmin() || (request.auth != null && uid == request.auth.uid);
+
+      allow create, update: if tengoIdentidad()
+        && uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['persona'])
+        && request.resource.data.persona is string
+        && request.resource.data.persona != miIdentidad().persona;
+
+      allow delete: if isAdmin();
     }
 
     // ── Película de cierre ────────────────────────────────────────────────

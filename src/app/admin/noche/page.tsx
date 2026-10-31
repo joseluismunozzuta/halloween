@@ -7,7 +7,7 @@ import { Bulbs } from "@/components/tape/Bulbs";
 import { Osd } from "@/components/tape/Osd";
 import { useSesion } from "@/lib/sesion";
 import { signInWithGoogle } from "@/lib/firebase";
-import { NOMBRES, PAREJAS, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
+import { NOMBRES, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
 import { liberarIdentidad } from "@/lib/identidad-db";
 import {
   actualizarNoche,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/mentiras";
 import { siguienteTurno } from "@/lib/mentiras-turnos";
 import { cerrarVotacionDisfraces } from "@/lib/disfraces";
+import { cerrarVotacionPlanes } from "@/lib/supervivencia";
 import {
   marcarCumplida,
   sembrarMisiones,
@@ -353,30 +354,55 @@ function Controles({
             disabled={ocupado}
             onClick={() =>
               correr("cerrar disfraces", async () => {
-                const { ganadoras, puntos } = await cerrarVotacionDisfraces();
+                const { tabla, puntos } = await cerrarVotacionDisfraces();
                 await volcarFuente("disfraces", puntos);
-                const texto = ganadoras
-                  .map((g) => {
-                    const pareja = PAREJAS.find((p) => p.id === g.parejaId);
-                    return `${g.categoria}: ${pareja?.nombre ?? "—"}`;
-                  })
+                const texto = tabla
+                  .map((fila) => `${fila.nombre}: ${fila.promedio.toFixed(1)}`)
                   .join(" · ");
-                return texto || "No hubo votos todavía.";
+                return texto || "Todavía nadie puso notas.";
               })
             }
             className="btn-sangre w-full"
           >
-            CERRAR VOTACIÓN Y REPARTIR PUNTOS
+            CERRAR CONCURSO Y REPARTIR PUNTOS
           </button>
           <p className="mt-2 text-[10px] leading-[1.5] text-muted">
-            {PUNTOS.categoriaDisfraz} puntos por categoría, para los dos de la pareja.
+            Cada quien puntúa del 1 al 10 a las dos parejas ajenas. El promedio se
+            convierte en puntos a razón de {PUNTOS.disfrazPorPunto} por punto, para los
+            dos de la pareja. Repetirlo no duplica nada.
           </p>
         </Bloque>
 
         {/* Supervivencia */}
-        <Bloque titulo="Plan de supervivencia">
-          <p className="text-[10px] text-muted">
-            Esta se vota a mano alzada. Marca quién ganó.
+        <Bloque titulo="Plan de supervivencia" personaje="/personajes/leatherface.webp">
+          <p className="text-[10px] leading-[1.5] text-muted">
+            El grupo vota desde su celular. Cierra cuando hayan pasado los seis:{" "}
+            {PUNTOS.mejorPlan} para el mejor plan y {PUNTOS.votoPlan} por cada voto que
+            recibieron los demás.
+          </p>
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() =>
+              correr("cerrar supervivencia", async () => {
+                const { ganador, conteo, puntos } = await cerrarVotacionPlanes();
+                if (!ganador) return "Todavía nadie votó.";
+                await volcarFuente("supervivencia", puntos);
+                const detalle = conteo
+                  .filter((c) => c.votos > 0)
+                  .map((c) => `${NOMBRES[c.persona]} ${c.votos}`)
+                  .join(" · ");
+                return `Gana ${NOMBRES[ganador]}. ${detalle}`;
+              })
+            }
+            className="btn-sangre mt-3 w-full"
+          >
+            CERRAR VOTACIÓN Y REPARTIR PUNTOS
+          </button>
+
+          <p className="mt-4 border-t border-blood-line pt-3 text-[10px] leading-[1.5] text-muted">
+            Respaldo, por si se vota a mano alzada: elige al ganador y dale los{" "}
+            {PUNTOS.mejorPlan} puntos directo. Pisa lo que haya dejado el botón de arriba.
           </p>
           <select
             value={ganadorPlan}

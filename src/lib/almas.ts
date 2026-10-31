@@ -30,7 +30,7 @@ export type Alma = {
  */
 export const TOPES: Record<Fuente, number> = {
   trivia: 1000,
-  disfraces: 1200, // tres categorías de 400
+  disfraces: 1200, // un 10 de promedio, a 120 el punto
   supervivencia: 600,
   // El máximo teórico, no lo esperable: cazar las cinco ajenas (5 × 200) y que
   // ninguno de los cinco descubra la tuya (5 × 150). Que las dos cosas pasen
@@ -43,8 +43,12 @@ export const TOPES: Record<Fuente, number> = {
 export const PUNTOS_POR_PUESTO = [1000, 800, 600, 400, 300, 200];
 
 export const PUNTOS = {
-  /** Por cada categoría de disfraces ganada (la gana la pareja entera). */
-  categoriaDisfraz: 400,
+  /**
+   * Cuánto vale cada punto del promedio del disfraz, para los dos de la
+   * pareja. Con notas del 1 al 10, un 10 perfecto da 1200 y un 5 raso, 600:
+   * la escala entera del concurso cabe dentro del tope de la fuente.
+   */
+  disfrazPorPunto: 120,
   /** Ganador del plan de supervivencia. */
   mejorPlan: 600,
   /** Por cada voto recibido en supervivencia, si no ganaste. */

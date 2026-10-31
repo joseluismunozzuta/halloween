@@ -74,14 +74,14 @@ export const FICHAS: Ficha[] = [
     actividad: "disfraces",
     cuandoTexto: "El 31, al llegar",
     queEs:
-      "Vienen disfrazados en pareja. Cada pareja sube una foto y después se vota por categorías.",
+      "Vienen disfrazados en pareja. Cada pareja sube una foto y después todos puntúan del 1 al 10.",
     queHaces: [
       "Ponte de acuerdo con tu pareja y vengan disfrazados. Eso es lo único que hay que preparar antes.",
       "Al llegar, suben una foto juntos desde el celular.",
-      "Votas en tres categorías: más terrorífico, más original y más improvisado. No puedes votar por tu propia pareja.",
+      "Le pones una nota del 1 al 10 a las otras dos parejas. La tuya no se puntúa, y puedes cambiar la nota hasta que se cierre.",
     ],
     paraQue:
-      "Tres categorías para que casi todos se lleven algo, y porque esa foto va a ser el recuerdo de la noche.",
+      "No es ganar o nada: cada pareja se lleva su promedio convertido en puntos, así que un 8 vale más que un 6. Y esa foto va a ser el recuerdo de la noche.",
   },
   {
     id: "trivia",

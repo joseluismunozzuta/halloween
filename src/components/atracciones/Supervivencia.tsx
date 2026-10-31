@@ -1,7 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { Attraction } from "@/components/tape/Attraction";
+import { PedirIdentidad } from "@/components/PedirIdentidad";
+import { useSesion } from "@/lib/sesion";
+import { NOMBRES, TODAS_LAS_PERSONAS, type PersonaId } from "@/lib/identidad";
+import { miVotoPlan, votarPlan } from "@/lib/supervivencia";
 
 const PASOS = [
   "Elige tus tres villanos.",
@@ -76,12 +81,83 @@ export function Supervivencia() {
               La gracia no es tener razón. Es defender un plan absurdo con cara seria
               durante dos minutos.
             </p>
-            <p className="mt-3 text-[11px] leading-[1.7] text-muted">
-              El cronómetro corre en la tele. No puedes votarte a ti mismo.
-            </p>
+            <Votacion />
           </div>
         </>
       )}
     </Attraction>
+  );
+}
+
+/**
+ * El voto al mejor plan, cuando ya pasaron los seis turnos.
+ *
+ * Vive en el celular y no en la tele por lo mismo que el resto de las
+ * votaciones de la noche: un voto que se canta en voz alta arrastra al que
+ * vota después.
+ */
+function Votacion() {
+  const { persona } = useSesion();
+  const [voto, setVoto] = useState<PersonaId | null>(null);
+
+  // Mi voto ya puesto, por si recargó el celular.
+  useEffect(() => {
+    if (!persona) return;
+    let cancelado = false;
+    const timeoutId = setTimeout(async () => {
+      const previo = await miVotoPlan().catch(() => null);
+      if (!cancelado && previo) setVoto(previo);
+    }, 0);
+    return () => {
+      cancelado = true;
+      clearTimeout(timeoutId);
+    };
+  }, [persona]);
+
+  if (!persona) {
+    return (
+      <div className="mt-4">
+        <PedirIdentidad accion="votar el mejor plan" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4">
+      <p className="text-[10px] tracking-[0.2em] text-bulb">EL PLAN MÁS CONVINCENTE</p>
+      <p className="mt-2 text-[11px] leading-[1.6] text-muted">
+        Cuando hayan pasado los seis, vota. No puedes votarte a ti mismo y puedes
+        cambiarlo hasta que se cierre.
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {TODAS_LAS_PERSONAS.filter((p) => p !== persona).map((quien) => {
+          const elegido = voto === quien;
+          return (
+            <button
+              key={quien}
+              type="button"
+              onClick={() => {
+                const previo = voto;
+                setVoto(quien);
+                votarPlan(quien).catch(() => setVoto(previo));
+              }}
+              aria-pressed={elegido}
+              className={`border px-2 py-2.5 text-[11px] transition-colors ${
+                elegido
+                  ? "border-bulb bg-bulb text-tape"
+                  : "border-tape-line text-bone hover:border-bulb"
+              }`}
+            >
+              {NOMBRES[quien]}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-[10px] leading-[1.5] text-muted">
+        El cronómetro corre en la tele. Nadie ve los votos hasta que JL cierre.
+      </p>
+    </div>
   );
 }

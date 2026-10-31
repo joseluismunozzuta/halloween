@@ -1,16 +1,29 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { PUNTOS } from "./almas";
 import { PAREJAS, type ParejaId, type PersonaId } from "./identidad";
 
-/** Lo que vale ganar una categoría, para los dos de la pareja. */
-const PUNTOS_CATEGORIA = 400;
+/**
+ * El concurso se puntúa del 1 al 10: cada quien le pone una nota a las dos
+ * parejas de las que no forma parte. No hay categorías.
+ *
+ * Con tres parejas, categorías servían para repartir premios; una nota sola es
+ * más corta de explicar en voz alta y deja un orden claro al final.
+ */
+export const NOTA_MINIMA = 1;
+export const NOTA_MAXIMA = 10;
+export const NOTAS = Array.from(
+  { length: NOTA_MAXIMA - NOTA_MINIMA + 1 },
+  (_, i) => NOTA_MINIMA + i
+);
 
 export type Disfraz = {
   parejaId: ParejaId;
@@ -18,13 +31,7 @@ export type Disfraz = {
   subidaPor: PersonaId | null;
 };
 
-export const CATEGORIAS = [
-  { id: "terrorifico", nombre: "Más terrorífico" },
-  { id: "original", nombre: "Más original" },
-  { id: "improvisado", nombre: "Más improvisado" },
-] as const;
-
-export type CategoriaId = (typeof CATEGORIAS)[number]["id"];
+export type NotaDisfraz = { parejaId: ParejaId; nota: number };
 
 export function suscribirDisfraces(
   callback: (lista: Disfraz[]) => void,
@@ -94,62 +101,75 @@ export async function subirDisfraz(
  * Voto secreto: solo el anfitrión puede leer esta colección, así que acá no
  * hay forma de saber cómo va la votación. Es a propósito.
  */
-export async function votarDisfraz(categoria: CategoriaId, parejaId: ParejaId) {
+export async function puntuarDisfraz(parejaId: ParejaId, nota: number) {
   const user = auth.currentUser;
   if (!user) throw new Error("sin-sesion");
-  await setDoc(doc(db, "disfrazVotos", `${user.uid}_${categoria}`), {
-    categoria,
-    parejaId,
-  });
+  await setDoc(doc(db, "disfrazVotos", `${user.uid}_${parejaId}`), { parejaId, nota });
 }
 
 /**
- * Cierra la votación: cuenta los votos —que solo el anfitrión puede leer— y
- * devuelve quién ganó cada categoría y los puntos que le tocan a cada persona.
+ * Mis notas, para que recargar el celular no las borre de la pantalla.
  *
- * Los puntos van a los DOS integrantes de la pareja ganadora: el disfraz es de
- * los dos, así que el premio también.
+ * Cada quien lee solo las suyas: el id del documento lleva su uid dentro. Las
+ * de los demás siguen siendo del anfitrión, que es lo que hace que puntuar sea
+ * secreto hasta el cierre.
+ */
+export async function misNotas(): Promise<NotaDisfraz[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const mias = await Promise.all(
+    PAREJAS.map(async (pareja) => {
+      const snap = await getDoc(doc(db, "disfrazVotos", `${user.uid}_${pareja.id}`));
+      return snap.exists()
+        ? { parejaId: pareja.id, nota: snap.data().nota as number }
+        : null;
+    })
+  );
+  return mias.filter((n): n is NotaDisfraz => n !== null);
+}
+
+/**
+ * Cierra el concurso: promedia las notas —que solo el anfitrión puede leer— y
+ * reparte puntos.
+ *
+ * No es «gana uno y los otros nada»: cada pareja se lleva su promedio
+ * convertido a puntos, así que un 8 vale más que un 6 y la noche no se juega a
+ * una sola carta. Los puntos van a los DOS integrantes, porque el disfraz es
+ * de los dos.
  */
 export async function cerrarVotacionDisfraces(): Promise<{
-  ganadoras: { categoria: string; parejaId: ParejaId }[];
+  tabla: { parejaId: ParejaId; nombre: string; promedio: number; votos: number }[];
   puntos: Partial<Record<PersonaId, number>>;
 }> {
-  const votos = await getDocs(collection(db, "disfrazVotos"));
+  const notas = await getDocs(collection(db, "disfrazVotos"));
 
-  const conteo = new Map<string, Map<string, number>>();
-  for (const d of votos.docs) {
-    const categoria = d.data().categoria as string;
+  const porPareja = new Map<string, number[]>();
+  for (const d of notas.docs) {
     const parejaId = d.data().parejaId as string;
-    if (!conteo.has(categoria)) conteo.set(categoria, new Map());
-    const porPareja = conteo.get(categoria)!;
-    porPareja.set(parejaId, (porPareja.get(parejaId) ?? 0) + 1);
+    const nota = d.data().nota as number;
+    if (typeof nota !== "number") continue;
+    porPareja.set(parejaId, [...(porPareja.get(parejaId) ?? []), nota]);
   }
 
-  const ganadoras: { categoria: string; parejaId: ParejaId }[] = [];
+  const tabla: { parejaId: ParejaId; nombre: string; promedio: number; votos: number }[] = [];
   const puntos: Partial<Record<PersonaId, number>> = {};
 
-  for (const categoria of CATEGORIAS) {
-    const porPareja = conteo.get(categoria.id);
-    if (!porPareja || porPareja.size === 0) continue;
+  for (const pareja of PAREJAS) {
+    const suyas = porPareja.get(pareja.id) ?? [];
+    if (suyas.length === 0) continue;
 
-    // Empate: gana la primera en orden de PAREJAS. Con tres parejas y votos
-    // de cuatro personas pasa poco, y desempatar a mano a la 1 am es peor.
-    let mejor: ParejaId | null = null;
-    let mejorVotos = -1;
-    for (const pareja of PAREJAS) {
-      const suyos = porPareja.get(pareja.id) ?? 0;
-      if (suyos > mejorVotos) {
-        mejorVotos = suyos;
-        mejor = pareja.id;
-      }
-    }
-    if (!mejor || mejorVotos <= 0) continue;
+    const promedio = suyas.reduce((a, b) => a + b, 0) / suyas.length;
+    tabla.push({
+      parejaId: pareja.id,
+      nombre: pareja.nombre,
+      promedio: Math.round(promedio * 10) / 10,
+      votos: suyas.length,
+    });
 
-    ganadoras.push({ categoria: categoria.nombre, parejaId: mejor });
-    for (const persona of PAREJAS.find((p) => p.id === mejor)!.integrantes) {
-      puntos[persona] = (puntos[persona] ?? 0) + PUNTOS_CATEGORIA;
-    }
+    const suma = Math.round(promedio * PUNTOS.disfrazPorPunto);
+    for (const persona of pareja.integrantes) puntos[persona] = suma;
   }
 
-  return { ganadoras, puntos };
+  tabla.sort((a, b) => b.promedio - a.promedio);
+  return { tabla, puntos };
 }
