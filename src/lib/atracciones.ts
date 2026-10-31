@@ -129,7 +129,7 @@ export const FICHAS: Ficha[] = [
     queHaces: [
       "Escribe tus tres frases desde ya y marca cuál es la verdadera. Que la cierta suene tan increíble como las que inventaste.",
       "Nadie las ve hasta que llegue tu turno esa noche: ni el resto, ni el anfitrión.",
-      "En la noche votas cuál crees que es la verdad de cada uno, desde tu celular.",
+      "En la noche votas cuál crees que es la verdad de cada uno desde tu celular: eliges el número, confirmas, y ya no se puede cambiar.",
     ],
     paraQue:
       "Hace falta una sola anécdota buena en vez de dos, que es lo que deja a alguien sin material. Y como las otras dos las inventas tú, puedes camuflarla para que no cante.",

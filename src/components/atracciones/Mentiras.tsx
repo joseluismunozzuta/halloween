@@ -52,6 +52,12 @@ function Ficha_() {
   // Atado a la ronda, no un numero suelto: con seis rondas seguidas, un voto
   // sin dueno se queda pegado de la ronda anterior y bloquea la siguiente.
   const [voto, setVoto] = useState<{ ronda: PersonaId; indice: number } | null>(null);
+  // El número elegido antes de confirmar. Vive solo acá: tocar un número no
+  // manda nada, porque el voto no se puede cambiar y en un celular a oscuras
+  // un dedo gordo no debería costarte la ronda.
+  const [seleccion, setSeleccion] = useState<number | null>(null);
+  const [enviandoVoto, setEnviandoVoto] = useState(false);
+  const [errorVoto, setErrorVoto] = useState("");
 
   const [listas, setListas] = useState<PersonaId[]>([]);
   const [fichas, setFichas] = useState<Ficha[]>([]);
@@ -95,6 +101,17 @@ function Ficha_() {
     };
   }, [ronda, puedoOpinar]);
 
+  // Cada ronda empieza sin nada elegido. Si no, al cambiar de turno el número
+  // de la ronda anterior seguiría marcado y bastaría un toque al botón de
+  // confirmar para votarlo sin haberlo elegido.
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSeleccion(null);
+      setErrorVoto("");
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [ronda]);
+
   // Al pasar a modo edición, precargo lo que ya estaba escrito.
   useEffect(() => {
     if (!editando || !miFicha) return;
@@ -117,6 +134,27 @@ function Ficha_() {
       setError("No se pudo guardar. Intenta de nuevo.");
     } finally {
       setGuardando(false);
+    }
+  }
+
+  /**
+   * Manda el voto y recién entonces bloquea la pantalla.
+   *
+   * No se marca como votado antes de que Firestore lo acepte: las reglas solo
+   * dejan crear el documento una vez, así que un voto que se dé por bueno sin
+   * haber llegado deja a esa persona sin ronda y sin saberlo.
+   */
+  async function confirmarVoto() {
+    if (!ronda || seleccion === null) return;
+    setEnviandoVoto(true);
+    setErrorVoto("");
+    try {
+      await votarMentira(ronda, seleccion);
+      setVoto({ ronda, indice: seleccion });
+    } catch {
+      setErrorVoto("No se pudo enviar. Intenta de nuevo.");
+    } finally {
+      setEnviandoVoto(false);
     }
   }
 
@@ -262,8 +300,8 @@ function Ficha_() {
             </>
           ) : (
             <>
-              Las frases están <span className="text-bone">en la pantalla</span>. Acá solo
-              eliges el número.
+              Las frases están <span className="text-bone">en la pantalla</span>. Acá eliges
+              el número y lo confirmas.
             </>
           )}
         </p>
@@ -271,32 +309,56 @@ function Ficha_() {
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           {[0, 1, 2].map((i) => {
             const esMio = miVoto === i;
-            const esLaMentira = resultado?.indiceVerdad === i;
-            const puedoVotar = rondaAbierta && puedoOpinar && miVoto === null && !resultado;
+            // La verdadera se ilumina en ámbar, igual que en la televisión: el
+            // rojo diría «trampa», y lo que se enciende es la que sí pasó.
+            const esLaVerdadera = resultado?.indiceVerdad === i;
+            const marcada = miVoto === null && seleccion === i;
+            const puedoElegir =
+              rondaAbierta && puedoOpinar && miVoto === null && !resultado && !enviandoVoto;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={!puedoVotar}
-                onClick={() => {
-                  if (!ronda) return;
-                  setVoto({ ronda, indice: i });
-                  votarMentira(ronda, i).catch(() => setVoto(null));
-                }}
-                aria-label={`Votar que la frase ${i + 1} es la verdadera`}
+                disabled={!puedoElegir}
+                onClick={() => setSeleccion(seleccion === i ? null : i)}
+                aria-pressed={marcada}
+                aria-label={`Elegir la frase ${i + 1}`}
                 className={`flex aspect-square items-center justify-center border font-cartel text-4xl transition-all ${
-                  esLaMentira
-                    ? "border-rec bg-rec text-tape"
+                  esLaVerdadera
+                    ? "border-bulb bg-bulb text-tape"
                     : esMio
                       ? "border-chroma-cyan bg-chroma-cyan text-tape"
-                      : "border-tape-line text-bone"
-                } ${miVoto !== null && !esMio && !esLaMentira ? "opacity-25" : ""} disabled:cursor-not-allowed disabled:opacity-30`}
+                      : marcada
+                        ? "border-chroma-cyan text-chroma-cyan"
+                        : "border-tape-line text-bone"
+                } ${miVoto !== null && !esMio && !esLaVerdadera ? "opacity-25" : ""} disabled:cursor-not-allowed disabled:opacity-30`}
               >
                 {i + 1}
               </button>
             );
           })}
         </div>
+
+        {rondaAbierta && puedoOpinar && miVoto === null && !resultado && (
+          <>
+            <button
+              type="button"
+              disabled={seleccion === null || enviandoVoto}
+              onClick={confirmarVoto}
+              className="mt-2.5 w-full border border-bulb bg-bulb py-3 text-[12px] tracking-[0.2em] text-tape transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              {enviandoVoto
+                ? "ENVIANDO…"
+                : seleccion === null
+                  ? "ELIGE UN NÚMERO"
+                  : `VOTAR LA ${seleccion + 1}`}
+            </button>
+            <p className="mt-1.5 text-[10px] leading-[1.5] text-muted">
+              Una vez confirmado no se puede cambiar.
+            </p>
+            {errorVoto && <p className="mt-1.5 text-[11px] text-rec">{errorVoto}</p>}
+          </>
+        )}
 
         {acerte !== null && (
           <p className={`mt-2 text-[11px] ${acerte ? "text-bulb" : "text-rec"}`}>
