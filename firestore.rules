@@ -87,48 +87,6 @@ service cloud.firestore {
     // ── Menú colaborativo ─────────────────────────────────────────────────
     // Sin secreto: es un menú. Los votos son públicos y se cuentan en el
     // cliente, lo que ahorra un paso manual al anfitrión.
-    match /platos/{platoId} {
-      allow read: if true;
-
-      allow create: if tengoIdentidad()
-        && request.resource.data.propuestoPor == miIdentidad().persona
-        && request.resource.data.titulo is string
-        && request.resource.data.titulo.size() > 0
-        && request.resource.data.titulo.size() < 160
-        && request.resource.data.tipo in ['cocinar', 'traer']
-        && request.resource.data.keys().hasOnly(
-             ['titulo', 'tipo', 'propuestoPor', 'asignadoA', 'creadoEn']
-           );
-
-      // Quien lo propuso puede corregir el texto; solo el anfitrión asigna.
-      allow update: if isAdmin()
-        || (tengoIdentidad()
-            && resource.data.propuestoPor == miIdentidad().persona
-            && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['titulo', 'tipo']));
-
-      allow delete: if isAdmin()
-        || (tengoIdentidad() && resource.data.propuestoPor == miIdentidad().persona);
-    }
-
-    match /platoVotos/{votoId} {
-      allow read: if true;
-
-      // El id fija un voto por plato y por persona, y que sea el tuyo.
-      allow create: if tengoIdentidad()
-        && votoId == request.resource.data.platoId + '_' + request.auth.uid
-        && request.resource.data.keys().hasOnly(['platoId', 'persona', 'uid'])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.persona == miIdentidad().persona;
-
-      allow update: if false;
-      // Retirar el voto propio sí se permite: es un menú, no una urna.
-      allow delete: if isAdmin()
-        || (signedIn() && resource.data.uid == request.auth.uid);
-    }
-
-    // ── Concurso de disfraces ─────────────────────────────────────────────
-    // Una foto por pareja. Cualquiera de los dos la sube o la reemplaza.
     match /disfraces/{parejaId} {
       allow read: if true;
 
@@ -237,15 +195,60 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Voto al mejor plan de supervivencia. Uno por persona, nunca el propio,
-    // y secreto hasta que el anfitrión cierra: cada quien lee solo el suyo.
-    match /planVotos/{uid} {
-      allow read: if isAdmin() || (request.auth != null && uid == request.auth.uid);
+    // ── Plan de supervivencia ─────────────────────────────────────────────
+
+    // Los casos: lectura pública porque salen en la televisión, que no tiene
+    // sesión. Lo que se esconde no es el caso, es el pliego del jurado.
+    match /bancoCasos/{casoId} {
+      allow read: if true;
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tomado'])
+        && request.resource.data.tomado is bool;
+      allow create, delete: if isAdmin();
+    }
+
+    // Quién tiene qué caso. Público: la pantalla lo necesita y no revela nada
+    // que el caso mismo no diga ya.
+    match /supervivencia/{persona} {
+      allow read: if true;
+
+      allow create, update: if isAdmin()
+        || (tengoIdentidad()
+            && miIdentidad().persona == persona
+            && !actividadAbierta('supervivencia')
+            && request.resource.data.keys().hasOnly(['casoId', 'abiertoEn']));
+
+      allow delete: if isAdmin();
+    }
+
+    // El pliego del jurado: el criterio, las salidas que funcionan y el giro.
+    //
+    // Esta es la regla que sostiene la dinámica: lo lee cualquiera MENOS quien
+    // tenga ese caso. Si el dueño pudiera leerlo, llegaría con las respuestas
+    // aprendidas y sabiendo el giro que le van a soltar, y los dos minutos no
+    // valdrían nada. Por eso no basta con esconderlo en la pantalla.
+    match /casoClaves/{casoId} {
+      allow read: if isAdmin()
+        || (tengoIdentidad()
+            && (!exists(/databases/$(database)/documents/supervivencia/$(miIdentidad().persona))
+                || get(/databases/$(database)/documents/supervivencia/$(miIdentidad().persona)).data.casoId != casoId));
+
+      allow write: if isAdmin();
+    }
+
+    // La nota del jurado a un plan. Uno por jurado y por presentador, nunca al
+    // propio, y secreta hasta que el anfitrión cierra.
+    match /planNotas/{notaId} {
+      allow read: if isAdmin()
+        || (request.auth != null
+            && notaId == request.auth.uid + '_' + resource.data.persona);
 
       allow create, update: if tengoIdentidad()
-        && uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['persona'])
-        && request.resource.data.persona is string
+        && notaId == request.auth.uid + '_' + request.resource.data.persona
+        && request.resource.data.keys().hasOnly(['persona', 'nota'])
+        && request.resource.data.nota is int
+        && request.resource.data.nota >= 1
+        && request.resource.data.nota <= 10
         && request.resource.data.persona != miIdentidad().persona;
 
       allow delete: if isAdmin();

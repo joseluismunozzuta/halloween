@@ -24,7 +24,7 @@ import {
  */
 export function Misiones() {
   return (
-    <Attraction id="misiones" number={5} title="Tu misión secreta">
+    <Attraction id="misiones" number={4} title="Tu misión secreta">
       {() => <Sobre />}
     </Attraction>
   );

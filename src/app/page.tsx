@@ -1,7 +1,6 @@
 import { Portada } from "@/components/atracciones/Portada";
 import { Agenda } from "@/components/atracciones/Agenda";
 import { Disfraces } from "@/components/atracciones/Disfraces";
-import { Menu } from "@/components/atracciones/Menu";
 import { Trivia } from "@/components/atracciones/Trivia";
 import { Misiones } from "@/components/atracciones/Misiones";
 import { Supervivencia } from "@/components/atracciones/Supervivencia";
@@ -19,7 +18,6 @@ export default function Home() {
     <div className="mx-auto w-full max-w-[520px]">
       <Portada />
       <Agenda />
-      <Menu />
       <Disfraces />
       <Trivia />
       <Misiones />

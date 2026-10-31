@@ -20,7 +20,7 @@ import {
  */
 export function Pelicula() {
   return (
-    <Attraction id="pelicula" number={9} title="La de las 2 am">
+    <Attraction id="pelicula" number={8} title="La de las 2 am">
       {() => <Votacion />}
     </Attraction>
   );

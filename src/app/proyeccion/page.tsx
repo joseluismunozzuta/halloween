@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { TriviaBoard } from "@/components/trivia/TriviaBoard";
 import { MentirasBoard } from "@/components/proyeccion/MentirasBoard";
 import { Acecha } from "@/components/proyeccion/Acecha";
+import { CasoBoard } from "@/components/proyeccion/CasoBoard";
 import { Bulbs } from "@/components/tape/Bulbs";
 import {
   IDLE_GAME,
@@ -16,7 +17,9 @@ import { EVENT_NAME } from "@/lib/event-config";
 import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
 import { suscribirFichas, type Ficha } from "@/lib/mentiras";
 import { suscribirSala, type Inscrito } from "@/lib/trivia-sala";
-import type { PersonaId } from "@/lib/identidad";
+import { suscribirCasos, type CasoAsignado } from "@/lib/supervivencia";
+import { casoDe } from "@/lib/supervivencia-casos";
+import { NOMBRES, type PersonaId } from "@/lib/identidad";
 
 /**
  * La pantalla de la TV. Es la única vista del sitio diseñada para horizontal y
@@ -36,14 +39,20 @@ export default function ProyeccionPage() {
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [fichas, setFichas] = useState<Ficha[]>([]);
   const [sala, setSala] = useState<Inscrito[]>([]);
+  const [casos, setCasos] = useState<CasoAsignado[]>([]);
 
   useEffect(() => subscribeGame(setGame), []);
   useEffect(() => subscribeScores(setScores), []);
   useEffect(() => suscribirSala(setSala, () => {}), []);
+  useEffect(() => suscribirCasos(setCasos, () => {}), []);
   useEffect(() => suscribirNoche(setNoche, () => {}), []);
   useEffect(() => suscribirFichas(setFichas, () => {}), []);
 
   const enMentiras = noche.actividadAbierta === "mentiras" && noche.rondaMentiras;
+  const enPlanes = noche.actividadAbierta === "supervivencia" && noche.rondaPlan;
+  const casoEnPantalla = enPlanes
+    ? casoDe(casos.find((c) => c.persona === noche.rondaPlan)?.casoId ?? "")
+    : undefined;
   const ficha = enMentiras
     ? fichas.find((f) => f.autor === noche.rondaMentiras)
     : undefined;
@@ -56,7 +65,7 @@ export default function ProyeccionPage() {
   // más rato va a estar puesta y la única sin nada que leer. Durante las
   // preguntas no acecha nadie: ahí la pantalla es para la pregunta. En las
   // mentiras tampoco, porque Ghostface ya vive dentro de ese tablero.
-  const acechante = !enMentiras && game.status === "idle";
+  const acechante = !enMentiras && !enPlanes && game.status === "idle";
 
   return (
     <main className="scanlines vineta telon relative flex h-screen flex-col overflow-hidden bg-tape">
@@ -82,7 +91,11 @@ export default function ProyeccionPage() {
             </div>
           </div>
           <p className="pb-1 text-right text-xs leading-relaxed tracking-[0.25em] text-muted">
-            {enMentiras ? "DOS VERDADES Y UNA MENTIRA" : "TRIVIA DE TERROR"}
+            {enMentiras
+              ? "DOS VERDADES Y UNA MENTIRA"
+              : enPlanes
+                ? "PLAN DE SUPERVIVENCIA"
+                : "TRIVIA DE TERROR"}
           </p>
         </div>
       </header>
@@ -92,7 +105,17 @@ export default function ProyeccionPage() {
           <Acecha src="/personajes/it-payaso.webp" lado="izquierda" ancho={300} alto={520} />
         )}
 
-        {enMentiras ? (
+        {enPlanes ? (
+          casoEnPantalla ? (
+            <CasoBoard persona={noche.rondaPlan as PersonaId} caso={casoEnPantalla} />
+          ) : (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-2xl text-muted">
+                {NOMBRES[noche.rondaPlan as PersonaId]} todavía no abrió su caso.
+              </p>
+            </div>
+          )
+        ) : enMentiras ? (
           ficha ? (
             <MentirasBoard
               autor={ficha.autor}
@@ -115,7 +138,11 @@ export default function ProyeccionPage() {
       </div>
 
       <footer className="relative z-20 shrink-0 border-t border-blood-line px-12 py-3 text-center text-xs tracking-[0.3em] text-muted">
-        {enMentiras ? "ELIGE EL NÚMERO DESDE TU CELULAR" : "RESPONDE DESDE TU CELULAR EN /TRIVIA"}
+        {enMentiras
+          ? "ELIGE EL NÚMERO DESDE TU CELULAR"
+          : enPlanes
+            ? "DOS MINUTOS · EL JURADO PUNTÚA DESDE SU CELULAR"
+            : "RESPONDE DESDE TU CELULAR EN /TRIVIA"}
       </footer>
     </main>
   );

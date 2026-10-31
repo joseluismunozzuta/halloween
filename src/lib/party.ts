@@ -37,6 +37,8 @@ export type EstadoNoche = {
   bloqueForzado: string | null;
   /** De quién son las frases que están en la pantalla ahora. */
   rondaMentiras: string | null;
+  /** De quién es el caso de supervivencia que está en la pantalla ahora. */
+  rondaPlan: string | null;
   resultadoMentiras: ResultadoMentiras | null;
 };
 
@@ -44,6 +46,7 @@ export const NOCHE_INICIAL: EstadoNoche = {
   actividadAbierta: null,
   bloqueForzado: null,
   rondaMentiras: null,
+  rondaPlan: null,
   resultadoMentiras: null,
 };
 
@@ -61,6 +64,7 @@ export function suscribirNoche(
         actividadAbierta: (data?.actividadAbierta as Actividad) ?? null,
         bloqueForzado: (data?.bloqueForzado as string | null) ?? null,
         rondaMentiras: (data?.rondaMentiras as string | null) ?? null,
+        rondaPlan: (data?.rondaPlan as string | null) ?? null,
         resultadoMentiras: (data?.resultadoMentiras as ResultadoMentiras | null) ?? null,
       });
     },

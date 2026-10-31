@@ -49,10 +49,12 @@ export const PUNTOS = {
    * la escala entera del concurso cabe dentro del tope de la fuente.
    */
   disfrazPorPunto: 120,
-  /** Ganador del plan de supervivencia. */
-  mejorPlan: 600,
-  /** Por cada voto recibido en supervivencia, si no ganaste. */
-  votoPlan: 100,
+  /**
+   * Cuánto vale cada punto del promedio del plan de supervivencia. Los otros
+   * cinco hacen de jurado y ponen del 1 al 10; un 10 redondo da los 600 del
+   * tope de la fuente.
+   */
+  planPorPunto: 60,
   /** Por adivinar la mentira de otro. */
   mentiraAcertada: 200,
   /** Por cada persona que NO adivinó la tuya. */

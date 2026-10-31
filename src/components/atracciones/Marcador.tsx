@@ -17,7 +17,7 @@ const FUENTES = "disfraces, trivia, supervivencia, mentiras y misiones";
  */
 export function Marcador() {
   return (
-    <Attraction id="marcador" number={8} title="Marcador de Almas">
+    <Attraction id="marcador" number={7} title="Marcador de Almas">
       {() => <Cementerio />}
     </Attraction>
   );

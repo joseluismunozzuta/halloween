@@ -53,21 +53,6 @@ export const FICHAS: Ficha[] = [
       "Para que nadie tenga que preguntar qué sigue, y para que puedas calcular a qué hora llegas sin perderte nada.",
   },
   {
-    id: "menu",
-    titulo: "El menú lo decidimos entre todos",
-    cuando: "antes",
-    cuandoTexto: "Ahora, antes del 31",
-    queEs:
-      "La comida de la noche no la elige nadie solo: cualquiera propone un plato y todos votan cuáles entran.",
-    queHaces: [
-      "Propón lo que te gustaría comer, o lo que sabes preparar.",
-      "Vota los platos que quieres en la mesa. Puedes quitar tu voto y cambiarlo.",
-      "Cuando el menú esté cerrado, cada uno queda con una tarea: cocinar algo o traerlo.",
-    ],
-    paraQue:
-      "Para llegar el 31 con la comida resuelta y cada uno sabiendo qué le toca, en vez de improvisar a último momento.",
-  },
-  {
     id: "disfraces",
     titulo: "Concurso de disfraces, en pareja",
     cuando: "noche",
@@ -118,19 +103,20 @@ export const FICHAS: Ficha[] = [
   },
   {
     id: "supervivencia",
-    titulo: "Plan de supervivencia",
-    cuando: "noche",
+    titulo: "¿Sobrevivirías a una película de terror?",
+    cuando: "antes",
     actividad: "supervivencia",
-    cuandoTexto: "11:00 pm",
+    cuandoTexto: "Abre tu caso ahora · se juega a las 11:00 pm",
     queEs:
-      "Eliges tres villanos del terror y tienes dos minutos para explicar cómo los vencerías.",
+      "A cada uno le toca un caso distinto: un asesino, un sitio, cuatro objetos y unas reglas. En la noche tienes dos minutos para explicar cómo sales vivo, y los otros cinco hacen de jurado.",
     queHaces: [
-      "Piensa a quiénes eliges. No hace falta prepararlo, pero si vienes con algo pensado se nota.",
-      "Dos minutos por persona, con cronómetro en la pantalla.",
-      "Al final votamos el plan más convincente. No puedes votar por el tuyo.",
+      "Abre tu caso desde ya y léelo con calma: tienes toda la tarde para pensar tu plan.",
+      "Si no te convence el que te tocó, puedes cambiarlo una vez por otro sin abrir.",
+      "En tu turno tu caso sale en la televisión y defiendes tu plan dos minutos. A mitad te van a soltar un giro que no viste venir.",
+      "Cuando no es tu turno eres jurado: puntúas del 1 al 10 y tienes en el celular las salidas que sí funcionan.",
     ],
     paraQue:
-      "Es la parte en la que cada uno habla solo frente al grupo. Dos minutos es poco a propósito: obliga a ir al grano y gana el que mejor lo cuenta.",
+      "Es la parte en la que cada uno habla solo frente al grupo. Dos minutos es poco a propósito: obliga a ir al grano, y gana el que mejor lo cuenta, no el que tenga razón.",
   },
   {
     id: "mentiras",

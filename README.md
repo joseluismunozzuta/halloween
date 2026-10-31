@@ -3,9 +3,9 @@
 > **FUNCIÓN ÚNICA — 31 de octubre de 2026, 7:00 pm, casa de Alexandra.**
 > Seis entran. Uno gana.
 
-Agenda viva de una noche de Halloween para seis amigos. Antes del 31 sirve para
-decidir el menú y salir con una tarea asignada; el 31 es el mando de todas las
-dinámicas de la noche.
+Agenda viva de una noche de Halloween para seis amigos. Antes del 31 cada uno
+deja listo lo suyo —su caso de supervivencia, sus tres frases, su voto de
+película—; el 31 es el mando de todas las dinámicas de la noche.
 
 El sitio es **una cinta VHS que alguien encontró**, grabada en un circo del
 terror. El VHS pone el lenguaje visual; el circo pone el tema, y cada sección
@@ -23,7 +23,6 @@ tajo.
 |---|---|---|
 | Portada | Art el payaso | Arrastras el tracking y la cinta se enfoca |
 | Agenda | Chucky | Los reflectores se encienden sobre cada hora |
-| Menú | Leatherface | El carnicero preside la cocina |
 | Disfraces | Pennywise | El globo revienta, sangra, y queda en loop |
 | Trivia | Samara | Sale del televisor, que es donde corre la trivia |
 | Misiones | Jigsaw | «Quiero jugar un juego»: tu misión, en secreto |
@@ -107,7 +106,7 @@ Cada dinámica aporta al mismo Marcador de Almas, y la trivia vuelca su
 |---|---|
 | Trivia | 1000 / 800 / 600 / 400 / 300 / 200 según el puesto |
 | Disfraces | El promedio de las notas (1–10) × 120, a los dos de la pareja |
-| Supervivencia | 600 al mejor plan |
+| Supervivencia | El promedio del jurado (1–10) × 60 |
 | Mentiras | 200 por acertar la ajena, 150 por cada quien que no descubra la tuya |
 | Misiones | 500 si el grupo da la tuya por cumplida |
 
@@ -121,7 +120,7 @@ con el texto de la ficha que explica cada dinámica:
 
 | Se usa desde ya | Se abre el 31 |
 |---|---|
-| Menú, mentiras (escribirlas), película | Disfraces, trivia, misiones, supervivencia, marcador |
+| Mentiras (escribirlas), supervivencia (abrir tu caso), película | Disfraces, trivia, misiones, marcador |
 
 Las de la noche se desbloquean solas a las 7:00 pm del 31, y además el
 anfitrión puede adelantar cualquiera desde `/admin/noche` abriendo esa

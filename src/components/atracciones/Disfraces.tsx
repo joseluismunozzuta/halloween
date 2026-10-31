@@ -19,7 +19,7 @@ import type { ParejaId } from "@/lib/identidad";
 
 export function Disfraces() {
   return (
-    <Attraction id="disfraces" number={3} title="Concurso de disfraces">
+    <Attraction id="disfraces" number={2} title="Concurso de disfraces">
       {(open) => <Escenario open={open} />}
     </Attraction>
   );

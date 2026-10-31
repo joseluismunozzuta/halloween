@@ -24,7 +24,12 @@ import {
 } from "@/lib/mentiras";
 import { siguienteTurno } from "@/lib/mentiras-turnos";
 import { cerrarVotacionDisfraces } from "@/lib/disfraces";
-import { cerrarVotacionPlanes } from "@/lib/supervivencia";
+import {
+  cerrarPlanes,
+  sembrarCasos,
+  suscribirCasos,
+  type CasoAsignado,
+} from "@/lib/supervivencia";
 import {
   marcarCumplida,
   sembrarMisiones,
@@ -102,16 +107,18 @@ function Controles({
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [listas, setListas] = useState<PersonaId[]>([]);
   const [cerradas, setCerradas] = useState<PersonaId[]>([]);
+  const [casos, setCasos] = useState<CasoAsignado[]>([]);
+  const [pasaron, setPasaron] = useState<PersonaId[]>([]);
   const [misiones, setMisiones] = useState<MisionAsignada[]>([]);
   const [almas, setAlmas] = useState<Alma[]>([]);
   const [triviaScores, setTriviaScores] = useState<TriviaScore[]>([]);
   const [aviso, setAviso] = useState("");
   const [ocupado, setOcupado] = useState(false);
-  const [ganadorPlan, setGanadorPlan] = useState<PersonaId | "">("");
 
   useEffect(() => suscribirNoche(setNoche, () => {}), []);
   useEffect(() => suscribirFichasListas(setListas, () => {}), []);
   useEffect(() => suscribirRondasCerradas(setCerradas, () => {}), []);
+  useEffect(() => suscribirCasos(setCasos, () => {}), []);
   useEffect(() => suscribirMisiones(setMisiones, () => {}), []);
   useEffect(() => suscribirAlmas(setAlmas, () => {}), []);
   useEffect(() => subscribeScores(setTriviaScores), []);
@@ -136,6 +143,18 @@ function Controles({
   const reveladaLaActual =
     noche.resultadoMentiras?.ronda != null &&
     noche.resultadoMentiras.ronda === noche.rondaMentiras;
+  // Los turnos de supervivencia usan el mismo orden que las mentiras. Quién
+  // "ya pasó" se lleva en la pestaña: el anfitrión marca al avanzar, porque
+  // las notas del jurado son secretas hasta el cierre y no se pueden contar
+  // desde acá sin leerlas.
+  const enPlanes = noche.actividadAbierta === "supervivencia";
+  const proximoPlan = siguienteTurno({
+    orden: TODAS_LAS_PERSONAS,
+    conFrases: casos.map((c) => c.persona),
+    cerradas: pasaron,
+    actual: (noche.rondaPlan as PersonaId | null) ?? null,
+  });
+
   const proximoTurno = siguienteTurno({
     orden: TODAS_LAS_PERSONAS,
     conFrases: listas,
@@ -376,61 +395,122 @@ function Controles({
         {/* Supervivencia */}
         <Bloque titulo="Plan de supervivencia" personaje="/personajes/leatherface.webp">
           <p className="text-[10px] leading-[1.5] text-muted">
-            El grupo vota desde su celular. Cierra cuando hayan pasado los seis:{" "}
-            {PUNTOS.mejorPlan} para el mejor plan y {PUNTOS.votoPlan} por cada voto que
-            recibieron los demás.
+            {casos.length} de {TODAS_LAS_PERSONAS.length} abrieron su caso. Va por turnos:
+            el caso sale en la televisión y los otros cinco lo puntúan del 1 al 10.
           </p>
+
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() =>
+              correr("sembrar casos", async () => {
+                const n = await sembrarCasos();
+                return n > 0 ? `Sembrados ${n} casos.` : "Los casos ya estaban sembrados.";
+              })
+            }
+            className="btn-riesgo mt-3 w-full"
+          >
+            SEMBRAR LOS CASOS
+          </button>
+
+          {!enPlanes ? (
+            <button
+              type="button"
+              disabled={ocupado || !proximoPlan}
+              onClick={() =>
+                correr("iniciar supervivencia", async () => {
+                  await actualizarNoche({
+                    actividadAbierta: "supervivencia",
+                    rondaPlan: proximoPlan,
+                  });
+                  return `En pantalla: ${NOMBRES[proximoPlan as PersonaId]}.`;
+                })
+              }
+              className="btn-sangre mt-2 w-full"
+            >
+              INICIAR LOS TURNOS
+            </button>
+          ) : (
+            <>
+              <p className="mt-3 border border-blood-line px-3 py-2.5 text-[11px] text-bone">
+                {noche.rondaPlan ? (
+                  <>Defiende su plan: {NOMBRES[noche.rondaPlan as PersonaId]}</>
+                ) : (
+                  <span className="text-muted">Turnos abiertos, sin nadie en pantalla.</span>
+                )}
+              </p>
+              <button
+                type="button"
+                disabled={ocupado || !proximoPlan}
+                onClick={() =>
+                  correr("pasar de turno", async () => {
+                    // El que sale de pantalla queda marcado como que ya pasó,
+                    // para que el orden no vuelva sobre él.
+                    const saliendo = noche.rondaPlan as PersonaId | null;
+                    if (saliendo) {
+                      setPasaron((lista) =>
+                        lista.includes(saliendo) ? lista : [...lista, saliendo]
+                      );
+                    }
+                    await actualizarNoche({ rondaPlan: proximoPlan });
+                    return `En pantalla: ${NOMBRES[proximoPlan as PersonaId]}.`;
+                  })
+                }
+                className="btn-hueso mt-2 w-full"
+              >
+                {proximoPlan
+                  ? `SIGUIENTE TURNO · ${NOMBRES[proximoPlan].toUpperCase()}`
+                  : "NO QUEDAN TURNOS"}
+              </button>
+            </>
+          )}
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {TODAS_LAS_PERSONAS.map((persona) => (
+              <button
+                key={persona}
+                type="button"
+                disabled={ocupado || !casos.some((c) => c.persona === persona)}
+                onClick={() =>
+                  correr("poner turno", async () => {
+                    await actualizarNoche({
+                      actividadAbierta: "supervivencia",
+                      rondaPlan: persona,
+                    });
+                    return `En pantalla: ${NOMBRES[persona]}.`;
+                  })
+                }
+                className={`border px-2 py-2 text-[11px] ${
+                  noche.rondaPlan === persona
+                    ? "border-bulb bg-bulb text-tape"
+                    : "border-tape-line text-bone disabled:opacity-30"
+                }`}
+              >
+                {pasaron.includes(persona) && noche.rondaPlan !== persona && "✓ "}
+                {NOMBRES[persona]}
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             disabled={ocupado}
             onClick={() =>
               correr("cerrar supervivencia", async () => {
-                const { ganador, conteo, puntos } = await cerrarVotacionPlanes();
-                if (!ganador) return "Todavía nadie votó.";
-                await volcarFuente("supervivencia", puntos);
-                const detalle = conteo
-                  .filter((c) => c.votos > 0)
-                  .map((c) => `${NOMBRES[c.persona]} ${c.votos}`)
+                const { tabla } = await cerrarPlanes();
+                if (tabla.length === 0) return "Todavía nadie puso notas.";
+                return tabla
+                  .map((f) => `${NOMBRES[f.persona]}: ${f.promedio.toFixed(1)}`)
                   .join(" · ");
-                return `Gana ${NOMBRES[ganador]}. ${detalle}`;
               })
             }
             className="btn-sangre mt-3 w-full"
           >
-            CERRAR VOTACIÓN Y REPARTIR PUNTOS
+            CERRAR Y REPARTIR PUNTOS
           </button>
-
-          <p className="mt-4 border-t border-blood-line pt-3 text-[10px] leading-[1.5] text-muted">
-            Respaldo, por si se vota a mano alzada: elige al ganador y dale los{" "}
-            {PUNTOS.mejorPlan} puntos directo. Pisa lo que haya dejado el botón de arriba.
+          <p className="mt-2 text-[10px] leading-[1.5] text-muted">
+            El promedio del jurado por {PUNTOS.planPorPunto}. Repetirlo no duplica nada.
           </p>
-          <select
-            value={ganadorPlan}
-            onChange={(e) => setGanadorPlan(e.target.value as PersonaId | "")}
-            className="mt-2 w-full border border-blood-line bg-tape-deep px-3 py-2.5 text-[12px] text-bone"
-          >
-            <option value="">Elige al ganador…</option>
-            {TODAS_LAS_PERSONAS.map((p) => (
-              <option key={p} value={p}>
-                {NOMBRES[p]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            disabled={ocupado || ganadorPlan === ""}
-            onClick={() =>
-              correr("puntos de supervivencia", async () => {
-                await volcarFuente("supervivencia", {
-                  [ganadorPlan as PersonaId]: PUNTOS.mejorPlan,
-                });
-                return `${NOMBRES[ganadorPlan as PersonaId]} se lleva la supervivencia.`;
-              })
-            }
-            className="btn-hueso mt-2 w-full"
-          >
-            DAR {PUNTOS.mejorPlan} PUNTOS
-          </button>
         </Bloque>
 
         {/* Misiones */}

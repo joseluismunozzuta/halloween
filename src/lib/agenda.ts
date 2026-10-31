@@ -17,9 +17,9 @@ export const AGENDA: AgendaBlock[] = [
     id: "llegada",
     startsAt: h(19),
     label: "7:00 pm",
-    title: "Llegada y cocina",
-    detail: "Abres tu misión secreta, te tomas la foto del disfraz y todos a la cocina.",
-    href: "#menu",
+    title: "Llegada",
+    detail: "Abres tu misión secreta y te tomas la foto del disfraz con tu pareja.",
+    href: "#misiones",
   },
   {
     id: "cena",
