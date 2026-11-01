@@ -101,6 +101,42 @@ export type MisionAsignada = {
   cumplida: boolean;
 };
 
+/**
+ * Mi misión, y solo la mía.
+ *
+ * Va aparte de `suscribirMisiones` a propósito: las reglas no dejan LISTAR la
+ * colección mientras la revelación esté cerrada —el nombre del documento es la
+ * persona, y una consulta de colección no puede probar «solo la tuya»—, así
+ * que escuchar la colección entera falla con permiso denegado para todos menos
+ * el anfitrión. Leer UN documento por su id sí está permitido.
+ */
+export function suscribirMiMision(
+  persona: PersonaId,
+  callback: (mia: MisionAsignada | null) => void,
+  onError?: (error: Error) => void
+) {
+  return onSnapshot(
+    doc(db, "misiones", persona),
+    (snap) =>
+      callback(
+        snap.exists()
+          ? {
+              persona,
+              misionId: (snap.data().misionId as string) ?? "",
+              nombre: (snap.data().nombre as string) ?? "Tu misión",
+              texto: (snap.data().texto as string) ?? "",
+              cumplida: (snap.data().cumplida as boolean) ?? false,
+            }
+          : null
+      ),
+    (err) => onError?.(err)
+  );
+}
+
+/**
+ * Las seis misiones. Solo se puede durante la revelación o desde la cabina:
+ * fuera de eso las reglas rechazan la consulta entera.
+ */
 export function suscribirMisiones(
   callback: (lista: MisionAsignada[]) => void,
   onError?: (error: Error) => void

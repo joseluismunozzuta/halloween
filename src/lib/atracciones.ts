@@ -63,7 +63,7 @@ export const FICHAS: Ficha[] = [
     queHaces: [
       "Ponte de acuerdo con tu pareja y vengan disfrazados. Eso es lo único que hay que preparar antes.",
       "Al llegar, suben una foto juntos desde el celular.",
-      "Le pones una nota del 1 al 10 a las otras dos parejas. La tuya no se puntúa, y puedes cambiar la nota hasta que se cierre.",
+      "Ves la foto de las otras dos parejas a pantalla completa y le mueves el punto del 1 al 10 a cada una. La tuya no se puntúa, y puedes cambiar la nota hasta que se cierre.",
     ],
     paraQue:
       "No es ganar o nada: cada pareja se lleva su promedio convertido en puntos, así que un 8 vale más que un 6. Y esa foto va a ser el recuerdo de la noche.",

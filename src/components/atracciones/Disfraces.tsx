@@ -9,7 +9,7 @@ import { PAREJAS, parejaDe } from "@/lib/identidad";
 import { useSesion } from "@/lib/sesion";
 import {
   misNotas,
-  NOTAS,
+  NOTA_MAXIMA,
   puntuarDisfraz,
   subirDisfraz,
   suscribirDisfraces,
@@ -33,6 +33,10 @@ function Escenario({ open }: { open: boolean }) {
   const miPareja = persona ? parejaDe(persona).id : null;
   const [disfraces, setDisfraces] = useState<Disfraz[]>([]);
   const [notas, setNotas] = useState<Partial<Record<ParejaId, number>>>({});
+  // Dónde está el punto del riel, que no es lo mismo que la nota ya puesta: se
+  // arrastra sin mandar nada hasta que se toca «puntuar».
+  const [puntos, setPuntos] = useState<Partial<Record<ParejaId, number>>>({});
+  const [guardando, setGuardando] = useState<ParejaId | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [errorFoto, setErrorFoto] = useState("");
   const entrada = useRef<HTMLInputElement>(null);
@@ -218,54 +222,6 @@ function Escenario({ open }: { open: boolean }) {
             </div>
           </div>
         </div>
-
-        {/* Los casilleros de las fotos */}
-        {/* Una foto por pareja, no por persona: son tres disfraces, no seis.
-            Solo puedes tocar la de tu propia pareja — lo exige la regla de
-            Firestore, no solo la interfaz. */}
-        <div
-          data-reveal
-          style={{ "--reveal-delay": "1s" } as React.CSSProperties}
-          className="absolute inset-x-[6%] bottom-[5%] z-40 grid grid-cols-3 gap-1.5"
-        >
-          {PAREJAS.map((pareja) => {
-            const disfraz = disfraces.find((d) => d.parejaId === pareja.id);
-            const esMia = miPareja === pareja.id;
-            return (
-              <div key={pareja.id} className="relative">
-                <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-1 overflow-hidden rounded-[3px] border border-tape-line bg-tape-deep/90 px-1 text-center">
-                  {disfraz?.foto ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={disfraz.foto}
-                      alt={pareja.nombre}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  ) : (
-                    <>
-                      <span className="text-base leading-none text-muted" aria-hidden>
-                        {esMia ? "+" : "·"}
-                      </span>
-                      <span className="text-[9px] leading-[1.25] text-muted">
-                        {pareja.nombre}
-                      </span>
-                    </>
-                  )}
-                </div>
-                {esMia && (
-                  <button
-                    type="button"
-                    onClick={() => entrada.current?.click()}
-                    disabled={subiendo}
-                    className="absolute inset-x-0 bottom-0 z-10 bg-tape/80 py-1 text-[8px] tracking-[0.1em] text-bulb"
-                  >
-                    {subiendo ? "···" : disfraz?.foto ? "CAMBIAR" : "SUBIR"}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       <input
@@ -293,80 +249,197 @@ function Escenario({ open }: { open: boolean }) {
         }}
       />
 
-      <div data-reveal className="mt-4 shrink-0">
+      <div data-reveal className="mt-5 shrink-0">
         <p className="text-[11px] leading-[1.7] text-muted">
           Una foto por pareja, al llegar. Voto secreto, y nadie vota a su propia
           pareja.
         </p>
         {errorFoto && <p className="mt-2 text-[11px] text-rec">{errorFoto}</p>}
 
-        {persona ? (
-          <div className="mt-4 space-y-4">
-            <p className="text-[11px] leading-[1.6] text-muted">
-              Ponle una nota del <span className="text-bone">1 al 10</span> a las otras dos
-              parejas. La tuya no se puntúa.
-            </p>
-
-            {PAREJAS.filter((p) => p.id !== miPareja).map((pareja) => {
-              const mia = notas[pareja.id];
-              return (
-                <div key={pareja.id}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-[10px] tracking-[0.15em] text-chroma-cyan">
-                      {pareja.nombre.toUpperCase()}
-                    </p>
-                    <span className="font-cartel text-lg leading-none text-bone">
-                      {mia ?? "–"}
-                    </span>
-                  </div>
-
-                  {/* Diez casillas en dos filas: a 375 px una sola fila deja
-                      celdas de 30 px, por debajo de lo que un pulgar acierta. */}
-                  <div className="mt-1.5 grid grid-cols-5 gap-1.5">
-                    {NOTAS.map((nota) => {
-                      const elegida = mia === nota;
-                      return (
-                        <button
-                          key={nota}
-                          type="button"
-                          onClick={() => {
-                            const previa = mia ?? null;
-                            setNotas((n) => ({ ...n, [pareja.id]: nota }));
-                            puntuarDisfraz(pareja.id, nota).catch(() =>
-                              // Si la escritura falla, la nota vuelve a lo que
-                              // había: mostrar una que no se guardó es peor que
-                              // no mostrar ninguna.
-                              setNotas((n) => ({ ...n, [pareja.id]: previa ?? undefined }))
-                            );
-                          }}
-                          aria-pressed={elegida}
-                          aria-label={`Ponerle ${nota} a ${pareja.nombre}`}
-                          className={`flex aspect-square items-center justify-center border text-[12px] transition-colors ${
-                            elegida
-                              ? "border-chroma-cyan bg-chroma-cyan text-tape"
-                              : "border-tape-line text-bone hover:border-chroma-cyan"
-                          }`}
-                        >
-                          {nota}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            <p className="text-[10px] leading-[1.5] text-muted">
-              Puedes cambiar la nota hasta que JL cierre el concurso. Nadie ve las notas
-              de nadie hasta entonces.
-            </p>
-          </div>
-        ) : (
+        {!persona ? (
           <div className="mt-4">
             <PedirIdentidad accion="subir tu foto y puntuar" />
           </div>
+        ) : (
+          <>
+            {/* Una foto por pantalla, en columna. El mosaico de tres
+                miniaturas de 90 px no dejaba ver un disfraz, y hay que poder
+                mirarlo antes de ponerle una nota: por eso el riel va pegado
+                debajo de la foto que puntúa y no en una lista aparte. */}
+            <div className="mt-5 space-y-8">
+              {PAREJAS.map((pareja) => {
+                const disfraz = disfraces.find((d) => d.parejaId === pareja.id);
+                const esMia = miPareja === pareja.id;
+                return (
+                  <article key={pareja.id}>
+                    <div
+                      className={`relative w-full overflow-hidden border border-blood-line bg-tape-deep/90 ${
+                        disfraz?.foto ? "h-[72vh]" : "h-[34vh]"
+                      }`}
+                    >
+                      {disfraz?.foto ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={disfraz.foto}
+                          alt={`Disfraz de ${pareja.nombre}`}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+                          <span
+                            className="font-cartel text-[28px] leading-none text-muted"
+                            aria-hidden
+                          >
+                            {esMia ? "+" : "?"}
+                          </span>
+                          <span className="text-[11px] leading-[1.5] text-muted">
+                            {esMia
+                              ? "Su foto va acá. Súbanla al llegar."
+                              : "Todavía no han subido la suya."}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* El nombre va sobre la foto, no debajo: así la foto
+                          llega hasta el filo y no queda una franja muerta. */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-tape via-tape/85 to-transparent px-3.5 pb-3 pt-10">
+                        <p className="font-cartel text-[17px] uppercase leading-none text-bone">
+                          {pareja.nombre}
+                        </p>
+                        {esMia && (
+                          <p className="mt-1.5 text-[10px] tracking-[0.2em] text-bulb">
+                            SU PAREJA
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {esMia ? (
+                      <button
+                        type="button"
+                        onClick={() => entrada.current?.click()}
+                        disabled={subiendo}
+                        className="btn-sangre mt-3 w-full"
+                      >
+                        {subiendo
+                          ? "SUBIENDO…"
+                          : disfraz?.foto
+                            ? "CAMBIAR LA FOTO"
+                            : "SUBIR NUESTRA FOTO"}
+                      </button>
+                    ) : (
+                      <Riel
+                        nombre={pareja.nombre}
+                        punto={puntos[pareja.id] ?? notas[pareja.id] ?? 0}
+                        puesta={notas[pareja.id]}
+                        guardando={guardando === pareja.id}
+                        onMover={(n) => setPuntos((p) => ({ ...p, [pareja.id]: n }))}
+                        onPuntuar={async (n) => {
+                          const previa = notas[pareja.id];
+                          setGuardando(pareja.id);
+                          setErrorFoto("");
+                          setNotas((x) => ({ ...x, [pareja.id]: n }));
+                          try {
+                            await puntuarDisfraz(pareja.id, n);
+                          } catch {
+                            // Si la escritura falla, la nota vuelve a lo que
+                            // había: mostrar una que no se guardó es peor que
+                            // no mostrar ninguna.
+                            setNotas((x) => ({ ...x, [pareja.id]: previa }));
+                            setErrorFoto("No se pudo guardar la nota. Intenta de nuevo.");
+                          } finally {
+                            setGuardando(null);
+                          }
+                        }}
+                      />
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+
+            <p className="mt-7 text-[11px] leading-[1.6] text-muted">
+              Puedes cambiar la nota hasta que JL cierre el concurso. Nadie ve las
+              notas de nadie hasta entonces.
+            </p>
+          </>
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * El riel de una pareja: arrastras el punto y después confirmas.
+ *
+ * Mover el punto no manda nada, igual que en las mentiras. Y el 0 no es una
+ * nota, es «todavía no has puesto ninguna» —las válidas van del 1 al 10, y así
+ * lo exigen las reglas de Firestore—, así que con el punto en el extremo
+ * izquierdo el botón no deja puntuar.
+ */
+function Riel({
+  nombre,
+  punto,
+  puesta,
+  guardando,
+  onMover,
+  onPuntuar,
+}: {
+  nombre: string;
+  punto: number;
+  puesta?: number;
+  guardando: boolean;
+  onMover: (nota: number) => void;
+  onPuntuar: (nota: number) => void;
+}) {
+  const sinMover = punto === 0;
+  const yaEsa = puesta === punto;
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-[11px] leading-[1.5] text-muted">
+          {puesta ? `Le pusiste ${puesta}.` : `Ponle una nota del 1 al ${NOTA_MAXIMA}.`}
+        </p>
+        <span
+          className={`font-cartel text-[30px] leading-none ${
+            sinMover ? "text-muted" : "text-bulb"
+          }`}
+        >
+          {sinMover ? "–" : punto}
+        </span>
+      </div>
+
+      <input
+        type="range"
+        min={0}
+        max={NOTA_MAXIMA}
+        step={1}
+        value={punto}
+        disabled={guardando}
+        onChange={(e) => onMover(Number(e.target.value))}
+        aria-label={`Nota para ${nombre}`}
+        className="riel-nota mt-2"
+      />
+      <div className="flex justify-between text-[10px] tracking-[0.15em] text-muted">
+        <span>0</span>
+        <span>{NOTA_MAXIMA}</span>
+      </div>
+
+      <button
+        type="button"
+        disabled={sinMover || yaEsa || guardando}
+        onClick={() => onPuntuar(punto)}
+        className="btn-sangre mt-3 w-full"
+      >
+        {guardando
+          ? "GUARDANDO…"
+          : sinMover
+            ? "MUEVE EL PUNTO"
+            : yaEsa
+              ? `PUNTUADA CON ${punto}`
+              : `PUNTUAR CON ${punto}`}
+      </button>
+    </div>
   );
 }

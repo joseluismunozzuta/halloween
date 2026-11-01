@@ -64,7 +64,7 @@ export function Casete({
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-[8px] tracking-[0.2em] text-muted">
-          {girando ? "REPRODUCIENDO" : sellado ? "STOP" : "FIN DE LA CINTA"}
+          {girando ? "REPRODUCIENDO" : sellado ? "SIN ABRIR" : "FIN DE LA CINTA"}
         </span>
         {girando && (
           <span aria-hidden className="rec-dot block h-[7px] w-[7px] rounded-full bg-rec" />
@@ -73,34 +73,42 @@ export function Casete({
     </div>
   );
 
-  if (!sellado) {
+  // Sellada o girando: la cinta todavía no dice nada, así que lo único que
+  // importa es el botón. Antes el casete entero era el botón y debajo decía
+  // «tocar para reproducir»; en un celular eso se lee como un adorno y la
+  // única palabra grande que quedaba era STOP, que parece un error.
+  if (sellado || girando) {
     return (
       <div>
         {cuerpo}
-        {texto && (
-          <div className="mt-3 border border-tape-line bg-tape-deep/80 px-4 py-4">
-            <p className="text-[12px] leading-[1.65] text-bone">{texto}</p>
-            <p className="mt-3 text-[10px] leading-[1.5] text-muted">
-              Cúmplela sin que te descubran.
-            </p>
-            {children}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={onPlay}
+          disabled={girando}
+          className="btn-sangre mt-3 w-full"
+        >
+          {girando ? "ABRIENDO…" : "▶ OBTENER MI MISIÓN"}
+        </button>
+        <p className="mt-2 text-center text-[11px] leading-[1.5] text-muted">
+          Se abre una sola vez. Nadie más puede verla.
+        </p>
       </div>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={onPlay}
-      className="block w-full text-left transition-transform active:scale-[0.99]"
-    >
+    <div>
       {cuerpo}
-      <p className="mt-2 text-center text-[10px] tracking-[0.2em] text-rec">
-        ▶ TOCAR PARA REPRODUCIR
-      </p>
-    </button>
+      {texto && (
+        <div className="mt-3 border border-tape-line bg-tape-deep/80 px-4 py-4">
+          <p className="text-[12px] leading-[1.65] text-bone">{texto}</p>
+          <p className="mt-3 text-[10px] leading-[1.5] text-muted">
+            Cúmplela sin que te descubran.
+          </p>
+          {children}
+        </div>
+      )}
+    </div>
   );
 }
 

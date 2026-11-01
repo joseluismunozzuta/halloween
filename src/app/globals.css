@@ -1092,6 +1092,59 @@ body {
   opacity: 1;
 }
 
+/* ───────────────────────── El riel de puntuar ─────────────────────────
+   Un dial de 0 a 10 en vez de diez casillas: diez botones se comían media
+   pantalla por cada pareja. El 0 no es una nota, es «todavía no has puesto
+   ninguna» —las válidas van del 1 al 10—, y hasta que el punto se mueva el
+   botón de puntuar no deja. */
+.riel-nota {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 30px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.riel-nota::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid var(--blood-line);
+  background: linear-gradient(90deg, var(--blood-dark), var(--rec-red));
+}
+
+.riel-nota::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  /* El pulgar es más alto que el riel, así que sube la mitad de la diferencia. */
+  margin-top: -10px;
+  height: 25px;
+  width: 25px;
+  border: 1px solid var(--bulb-amber);
+  border-radius: 999px;
+  background: var(--bulb-amber);
+  box-shadow: 0 0 18px -4px rgba(255, 140, 26, 0.85);
+}
+
+.riel-nota::-moz-range-track {
+  height: 6px;
+  border: 1px solid var(--blood-line);
+  background: linear-gradient(90deg, var(--blood-dark), var(--rec-red));
+}
+
+.riel-nota::-moz-range-thumb {
+  height: 25px;
+  width: 25px;
+  border: 1px solid var(--bulb-amber);
+  border-radius: 999px;
+  background: var(--bulb-amber);
+  box-shadow: 0 0 18px -4px rgba(255, 140, 26, 0.85);
+}
+
+.riel-nota:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 }
 
 /* ───────────────────────── Accesibilidad ─────────────────────────
