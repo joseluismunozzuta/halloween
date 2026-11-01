@@ -89,9 +89,6 @@ export function Casete({
         >
           {girando ? "ABRIENDO…" : "▶ OBTENER MI MISIÓN"}
         </button>
-        <p className="mt-2 text-center text-[11px] leading-[1.5] text-muted">
-          Se abre una sola vez. Nadie más puede verla.
-        </p>
       </div>
     );
   }
