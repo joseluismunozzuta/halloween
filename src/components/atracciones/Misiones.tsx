@@ -10,7 +10,6 @@ import { NOMBRES } from "@/lib/identidad";
 import { NOCHE_INICIAL, suscribirNoche, type EstadoNoche } from "@/lib/party";
 import {
   abrirMision,
-  cambiarMision,
   suscribirMiMision,
   suscribirMisiones,
   type MisionAsignada,
@@ -37,7 +36,6 @@ function Sobre() {
   const [misiones, setMisiones] = useState<MisionAsignada[]>([]);
   const [noche, setNoche] = useState<EstadoNoche>(NOCHE_INICIAL);
   const [abriendo, setAbriendo] = useState(false);
-  const [confirmandoCambio, setConfirmandoCambio] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => suscribirNoche(setNoche, () => {}), []);
@@ -79,24 +77,6 @@ function Sobre() {
     }
   }
 
-  async function cambiar() {
-    if (!persona) return;
-    setAbriendo(true);
-    setError("");
-    try {
-      setMia(await cambiarMision(persona));
-      setConfirmandoCambio(false);
-    } catch (err) {
-      setError(
-        err instanceof Error && err.message === "banco-agotado"
-          ? "Ya no quedan misiones libres: te quedas con la tuya."
-          : "No se pudo cambiar la misión."
-      );
-    } finally {
-      setAbriendo(false);
-    }
-  }
-
   return (
     <>
       <div className="relative mt-4 min-h-0 flex-1">
@@ -127,45 +107,7 @@ function Sobre() {
               <PedirIdentidad accion="recibir tu misión" />
             </div>
           ) : mia ? (
-            <Casete estado="listo" nombre={mia.nombre} texto={mia.texto}>
-              {/* Cambiarla devuelve la tuya al banco y saca otra que nadie
-                  haya abierto. Se cierra cuando empieza la revelación: a esa
-                  altura cambiar de misión sería cambiar de examen. */}
-              {!revelacion &&
-                (confirmandoCambio ? (
-                  <div className="mt-4 border-t border-tape-line pt-3">
-                    <p className="text-[10px] leading-[1.5] text-muted">
-                      La cambias por otra al azar y esta vuelve al sobre de nadie. No se
-                      puede volver atrás.
-                    </p>
-                    <div className="mt-2.5 flex gap-2">
-                      <button
-                        type="button"
-                        disabled={abriendo}
-                        onClick={cambiar}
-                        className="flex-1 border border-rec py-2 text-[10px] tracking-[0.15em] text-rec transition-colors hover:bg-rec hover:text-tape disabled:opacity-40"
-                      >
-                        {abriendo ? "CAMBIANDO…" : "SÍ, OTRA"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmandoCambio(false)}
-                        className="flex-1 border border-tape-line py-2 text-[10px] tracking-[0.15em] text-muted transition-colors hover:text-bone"
-                      >
-                        ME LA QUEDO
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmandoCambio(true)}
-                    className="mt-4 text-[10px] tracking-[0.15em] text-muted underline-offset-4 hover:text-rec hover:underline"
-                  >
-                    NO ME GUSTA, DAME OTRA
-                  </button>
-                ))}
-            </Casete>
+            <Casete estado="listo" nombre={mia.nombre} texto={mia.texto} />
           ) : (
             <Casete estado={abriendo ? "girando" : "sellado"} onPlay={abrir} />
           )}

@@ -18,13 +18,11 @@ export function Casete({
   nombre,
   texto,
   onPlay,
-  children,
 }: {
   estado: "sellado" | "girando" | "listo";
   nombre?: string;
   texto?: string;
   onPlay?: () => void;
-  children?: React.ReactNode;
 }) {
   const girando = estado === "girando";
   const sellado = estado === "sellado";
@@ -102,7 +100,6 @@ export function Casete({
           <p className="mt-3 text-[10px] leading-[1.5] text-muted">
             Cúmplela sin que te descubran.
           </p>
-          {children}
         </div>
       )}
     </div>

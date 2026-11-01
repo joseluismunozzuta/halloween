@@ -295,14 +295,10 @@ service cloud.firestore {
       allow create: if tengoIdentidad() && miIdentidad().persona == persona
         && request.resource.data.keys().hasOnly(['misionId', 'nombre', 'texto', 'abiertaEn']);
 
-      // Cambiar la misión por otra: solo el dueño, solo antes de la
-      // revelación, y sin poder escribir 'cumplida' —eso lo marca el
-      // anfitrión cuando el grupo vota, y nadie se lo pone a sí mismo.
-      allow update: if isAdmin()
-        || (tengoIdentidad()
-            && miIdentidad().persona == persona
-            && !actividadAbierta('misiones')
-            && request.resource.data.keys().hasOnly(['misionId', 'nombre', 'texto', 'abiertaEn']));
+      // La que te tocó, te tocó: nadie reescribe su propia misión. Solo el
+      // anfitrión la toca, y únicamente para marcar si el grupo la dio por
+      // cumplida cuando se vota a medianoche.
+      allow update: if isAdmin();
 
       allow delete: if isAdmin();
     }

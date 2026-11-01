@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   runTransaction,
@@ -26,8 +25,8 @@ import { NOMBRES, TODAS_LAS_PERSONAS, type PersonaId } from "./identidad";
  * - `excluye` es para las que nombran a una persona: a esa no se le asigna,
  *   porque pedirle a Victor una foto de Victor no tiene gracia.
  *
- * Hay más misiones que personas a propósito: las que sobran son el repuesto
- * de quien cambie la suya.
+ * Hay más misiones que personas a propósito: sobra margen por si alguna
+ * queda marcada como tomada sin dueño al caerse una transacción a medias.
  */
 export type MisionBanco = {
   id: string;
@@ -166,39 +165,17 @@ export function suscribirMisiones(
  */
 export async function abrirMision(persona: PersonaId): Promise<MisionAsignada> {
   if (!auth.currentUser) throw new Error("sin-sesion");
-  return tomarUnaLibre(persona, null);
+  return tomarUnaLibre(persona);
 }
 
-/**
- * Cambia la misión por otra que nadie haya abierto todavía.
- *
- * Suelta la vieja al banco antes de quedarse con la nueva, en la misma
- * transacción: si se cayera en medio, lo peor que pasa es que una misión
- * quede marcada como tomada sin dueño, nunca que dos personas tengan la
- * misma. Por eso el banco tiene más misiones que personas.
- */
-export async function cambiarMision(persona: PersonaId): Promise<MisionAsignada> {
-  if (!auth.currentUser) throw new Error("sin-sesion");
-  const mia = await getDoc(doc(db, "misiones", persona));
-  const anterior = mia.exists() ? (mia.data().misionId as string) : null;
-  return tomarUnaLibre(persona, anterior);
-}
-
-/**
- * El reparto en sí. `soltar` es la misión que hay que devolver al banco, si
- * se está cambiando una por otra.
- */
-async function tomarUnaLibre(
-  persona: PersonaId,
-  soltar: string | null
-): Promise<MisionAsignada> {
+/** El reparto en sí. */
+async function tomarUnaLibre(persona: PersonaId): Promise<MisionAsignada> {
   const mia = doc(db, "misiones", persona);
 
   // El banco se lee fuera de la transacción: dentro no se puede consultar una
   // colección. La carrera real la resuelve el documento de la misión elegida.
   const banco = await getDocs(collection(db, "bancoMisiones"));
   const libres = banco.docs.filter((d) => {
-    if (d.id === soltar) return false;
     if (d.data().tomada === true) return false;
     // Las que nombran a alguien no se le dan a esa persona.
     return (d.data().excluye as PersonaId | undefined) !== persona;
@@ -208,8 +185,9 @@ async function tomarUnaLibre(
   for (const candidata of barajar(libres.map((d) => d.id))) {
     try {
       return await runTransaction(db, async (tx) => {
+        // Si ya tenías una, esa es la tuya: no se reparte dos veces.
         const yaTengo = await tx.get(mia);
-        if (yaTengo.exists() && soltar === null) {
+        if (yaTengo.exists()) {
           const data = yaTengo.data();
           return {
             persona,
@@ -227,7 +205,6 @@ async function tomarUnaLibre(
         const nombre = (snap.data().nombre as string) ?? "Tu misión";
         const texto = conDestinatario(snap.data().texto as string, persona);
 
-        if (soltar) tx.update(doc(db, "bancoMisiones", soltar), { tomada: false });
         tx.update(ref, { tomada: true });
         tx.set(mia, { misionId: candidata, nombre, texto, abiertaEn: serverTimestamp() });
         return { persona, misionId: candidata, nombre, texto, cumplida: false };

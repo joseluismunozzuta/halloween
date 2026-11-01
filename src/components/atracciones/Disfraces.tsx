@@ -327,6 +327,12 @@ function Escenario({ open }: { open: boolean }) {
                             ? "CAMBIAR LA FOTO"
                             : "SUBIR NUESTRA FOTO"}
                       </button>
+                    ) : !disfraz?.foto ? (
+                      /* Sin foto no hay nada que juzgar: puntuar a ciegas es
+                         repartir puntos por quién se demora menos en subirla. */
+                      <p className="mt-3.5 text-[11px] leading-[1.6] text-muted">
+                        Podrás puntuarlos en cuanto suban su foto.
+                      </p>
                     ) : (
                       <Riel
                         nombre={pareja.nombre}
